@@ -11,25 +11,17 @@ from django.views.decorators.csrf import csrf_exempt
 @csrf_exempt
 def home(request):
     if request.method == 'POST':
-        # Access form field values from request.POST
         username = request.POST.get('username')
         password = request.POST.get('password')
-        # data = json.loads(request.body)
-        # username = data.get('username')
-        # password = data.get('password')
-
-        remember_me = request.POST.get('remember_me')  # Assuming you have a checkbox with the name 'remember_me'
-        # Do something with the form data (e.g., validate, authenticate user)
-        # Example: Authenticate user using Django's built-in authentication system
-        #print(username, password)
+        remember_me = request.POST.get('remember_me')  
         user = authenticate(request, username=username, password=password)
         print(user)
         if user is not None:
-            a_login(request, user)  # Assuming you have imported the login function
+            a_login(request,user):
             if request.user.is_authenticated:
                 print("User is authenticatedd at web")  # This line will be executed if the user is authenticated
             else:
-                print("User is not authenticated at web")
+                print("User is not authenticated at web and here")
             return render(request, 'home.html')
         else:
             # User authentication failed
@@ -68,6 +60,9 @@ def signup(request):
         p_image = request.POST.get('p_image')
 
         url = "http://127.0.0.1:8000/api/sign" 
+        # url = "http://127.0.0.1:8000/api/sign" 
+        # url = "http://127.0.0.1:8000/api/sign" 
+        # url = "http://127.0.0.1:8000/api/sign" 
         data = {
             'username': username,
             'password': password,
@@ -86,7 +81,6 @@ def signup(request):
 
         response = requests.post(url, data=data)
         if response.status_code == 201:
-            print("Registration successful!")
             return redirect('home')
         else:
             print("Failed to register:", response.text)
