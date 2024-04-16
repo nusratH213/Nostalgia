@@ -9,7 +9,6 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
 
-
 urlpatterns = [
     path('', MyModelListCreateAPIView.as_view(), name='mymodel-list-create'),
     path('orm', MyAPIView.as_view(), name='MyAPIView'),
@@ -36,16 +35,6 @@ urlpatterns = [
     path('blog', views.BlogListView.as_view(), name='blog'),
     path('singleblog', views.BlogSingleView.as_view(), name='singleblog'),
     path('addblog', views.BlogCreateView.as_view(), name='addblog'),
-<<<<<<< HEAD
-    path('compare', views.CompareImagesView.as_view(), name='compare_images'),
-    path('upvote', views.UpvoteAPIView.as_view(), name='upvote'),
-    path('walkmember', views.WalkMemberView.as_view(), name='walkmember'),
-
-
-
-]
-
-=======
     path('add_group', views.Add_group.as_view(), name='add_group'),
     path('my_groups', views.My_Group.as_view(), name='my_groups'),
     path('g_profile/<username>', views.GroupProfile.as_view(), name='g_profile'),
@@ -67,11 +56,17 @@ urlpatterns = [
     path('walk!members', views.WalkNotMember.as_view(), name='walk!members'),
     path('handlemember', views.Handlemember.as_view(), name='Handlemember'),
     path('join_group', views.JoinGroup.as_view(), name='join_group'),
-    path('addgroupost', views.AddGroupPost.as_view(), name='addgroupost')
+    path('addgroupost', views.AddGroupPost.as_view(), name='addgroupost'),
+    path('groupmembers', views.GroupMembers.as_view(), name='groupmembers'),
+    path('requestmembers',views.RequestMembers.as_view(), name='requestmembers'),
+    path('grouprequest',views.GroupRequest.as_view(), name='grouprequest'),
+    path('friendsugg',views.FriendSugg.as_view(), name='friendsugg'),
+    # path('nidtext',views.NIDText.as_view(), name='nidtext'),
+    # path('nidimg',views.NIDImage.as_view(), name='nidimg'),
+    # path('dnid',views.DecodeImageView.as_view(), name='dnid'),
 
 ]
 
 
->>>>>>> 31bde0bfa840f414901b97f2e621dcfcc09bc53c
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

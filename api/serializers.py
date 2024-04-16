@@ -2,7 +2,7 @@ from rest_framework import serializers
 from django.contrib.auth.hashers import make_password
 from api.models import Owner, Overseer, User
 from api.models import Friend, Chat, Medication, Medicine, Blog, GroupPost #, IndividualPost, Group, GroupMember, Division, District, PlanTrip, Agency, Guide, TripMember, Upvote, Comment, Reply, PlanEvent, JoinEvent,Walk
-
+from api.models import Walk
 
 #duplicate it for Oversee
 class UserSerializer(serializers.ModelSerializer):
