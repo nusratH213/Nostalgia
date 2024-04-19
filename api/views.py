@@ -162,7 +162,7 @@ class login_api(views.APIView):
                 user=Owner.objects.get(username=username)
                 serializer = OwnerSerializer(user)
 
-                return JsonResponse({'auth': True,'user':serializer.data}, status=status.HTTP_200_OK)
+                return JsonJsonResponse({'auth': True,'user':serializer.data}, status=status.HTTP_200_OK)
         
         return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -1760,6 +1760,218 @@ class AddGroupPost(CreateAPIView):
             )
             blog.save()
         return Response({"message": "Group Blog created successfully"}, status=status.HTTP_201_CREATED)
+
+class GroupMembers(APIView):
+    def get(self,request):
+        username=request.GET.get('username')
+        print(username)
+        group=Group.objects.get(G_username=username)
+        members=GroupMember.objects.filter(G_username=group,accept=1)
+        print(members)
+        members_data=[]
+        for member in members:
+            members_data.append({
+                'id': member.MemberID,
+                'username': member.member.username,
+                'img': member.member.p_image.url if member.member.p_image else "/media/image/download_lsX6bjA6.jpeg",
+                'first_name': member.member.first_name,
+                'last_name': member.member.last_name,
+                'email': member.member.email,
+                'phone': member.member.phone,
+                'dob': member.member.dob,
+                'Since': member.JoinDate,
+                'gender': member.member.gender,
+            })
+        print(members_data)
+        return Response(members_data)
+
+class RequestMembers(APIView):
+    def get(self,request):
+        username=request.GET.get('username')
+        print(username)
+        group=Group.objects.get(G_username=username)
+        members=GroupMember.objects.filter(G_username=group,accept=0)
+        print(members)
+        members_data=[]
+        for member in members:
+            members_data.append({
+                'member_id': member.MemberID,  
+                'id': member.member.id,
+                'username': member.member.username,
+                'img': member.member.p_image.url if member.member.p_image else "/media/image/download_lsX6bjA6.jpeg",
+                'first_name': member.member.first_name,
+                'last_name': member.member.last_name,
+                'email': member.member.email,
+                'phone': member.member.phone,
+                'dob': member.member.dob,
+                'Since': member.JoinDate,
+            })
+        print(members_data)
+        return Response(members_data)
+
+class GroupRequest(APIView):
+    def post(self,request):
+        data=request.data
+        print(data)
+        group=GroupMember.objects.filter(G_username=Group.objects.get(G_username=data['group']),member_id=Owner.objects.get(id=data['user_id']).id)
+        if(len(group)==0):
+            return Response({"msg": "User not found"})
+        print(group[0])
+        group=group[0]
+        if(data['type']=='Delete'):
+            group.delete()
+            return Response({"message": "Request deleted successfully"}, status=status.HTTP_201_CREATED)
+        if(data['type']=="confirm"):
+            group.accept=1; 
+            group.save()
+            return Response({"message": "Request accepted successfully"}, status=status.HTTP_201_CREATED)
+        if(data['type']=="Block"):
+            group.Block=1
+            group.save()
+            return Response({"message": "Request blocked successfully"}, status=status.HTTP_201_CREATED)
+        if(data['type']=="Unblock"):
+            group.Block=0
+            group.save()
+            return Response({"message": "Request unblocked successfully"}, status=status.HTTP_201_CREATED)
+        if(data['type']=="Remove"):
+            group.delete()
+            return Response({"message": "Request removed successfully"}, status=status.HTTP_201_CREATED)
+        return Response({"message": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
+
+from django.core.files.uploadedfile import InMemoryUploadedFile
+import numpy as np
+import io
+import easyocr
+import cv2
+import re
+
+class NIDImage(APIView):
+    def post(self,request):
+        data=request.data
+        print(data)
+        img = request.FILES.get('nid')
+        if img is None:
+            if data['nidtext'] is not None:
+                img=data['nidtext']
+
+            else:
+              return Response({"msg": "NID doesnt found"})
+        text = []
+        if isinstance(img, InMemoryUploadedFile):
+            # Read the file content as bytes
+            image_bytes = img.read()
+            # Convert bytes to numpy array
+            nparr = np.frombuffer(image_bytes, np.uint8)
+            # Load image using OpenCV
+            img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
+            # Process the image with EasyOCR
+            reader = easyocr.Reader(['en', 'bn'], gpu=True)
+            result = reader.readtext(img_cv)
+
+            # Continue with processing the result
+            # with open("nid.txt", 'w', encoding='utf-8') as f:
+            #     for detection in result:
+            #         text.append(detection[1])
+            #         f.write(detection[1])
+            #         f.write('\n')
+            #         print(detection[1])
+            #     f.close()
+            for detection in result:
+                print(detection[1])
+                text.append(detection[1])
+
+            name_pattern = r'STUDENT\s+NAME\s+(.*)'
+            dob_pattern = r'DATE\s+OF\s+BIRTH\s+(.*)'
+            nationality_pattern = r'NATIONALITY\s+(.*)'
+
+            # Initialize variables to store extracted information
+            student_name = None
+            date_of_birth = None
+            nationality = None
+
+            # Iterate through detected text and apply regex patterns
+            for line in text:
+                name_match = re.match(name_pattern, line)
+                if name_match:
+                    student_name = name_match.group(1).strip()
+                
+                dob_match = re.match(dob_pattern, line)
+                if dob_match:
+                    date_of_birth = dob_match.group(1).strip()
+                
+                nationality_match = re.match(nationality_pattern, line)
+                if nationality_match:
+                    nationality = nationality_match.group(1).strip()
+
+            # Print the extracted information
+            print("Student Name: ", student_name)
+            print("Date of Birth: ", date_of_birth)
+            print("Nationality: ", nationality)
+
+        else:
+            # If img is a file path or URL
+            IMAGE_PATH = img
+            reader = easyocr.Reader(['en', 'bn'], gpu=True)
+            result = reader.readtext(IMAGE_PATH)
+        print(text)
+        return Response({"message": "NID Read successfully"}, status=status.HTTP_201_CREATED)
+
+
+
+class NIDText(APIView):
+    def post(self,request):
+        data=request.data
+        print(data)
+        if(NID.objects.filter(NID_number=data['nid']).exists()):
+            return Response({"msg": "NID already exists"})
+        nid=NID.objects.create(NID_number=data['nid'],NID_text=data['text'])
+        nid.save()
+        return Response({"message": "NID created successfully"}, status=status.HTTP_201_CREATED)
+
+
+
+# from django.http import JsonResponse
+# from django.views import View
+# from PIL import Image
+# from pyzbar.pyzbar import decode
+
+# from django.http import JsonResponse
+# from django.views import View
+# from PIL import Image
+# from pyzbar.pyzbar import decode
+
+# class DecodeImageView(View):
+#     def decode_image(self, image):
+#         # Decode the barcode from the image
+#         decoded_objects = decode(image)
+
+#         # Extract decoded text from the decoded objects
+#         decoded_text = []
+#         for obj in decoded_objects:
+#             decoded_text.append(obj.data.decode('utf-8'))
+
+#         return decoded_text
+
+#     def post(self, request, *args, **kwargs):
+#         try:
+#             # Check if 'image' file is present in the request
+#             if 'image' not in request.FILES:
+#                 return JsonResponse({"error": "No image file found in the request"}, status=400)
+            
+#             # Get the 'image' file from the request
+#             image_file = request.FILES['image']
+
+#             # Open the image file using PIL
+#             image = Image.open(image_file)
+
+#             # Call the decode_image function to decode the barcode
+#             decoded_text = self.decode_image(image)
+
+#             # Return the decoded text
+#             return JsonResponse({"decoded_text": decoded_text})
+
+#         except Exception as e:
+#             return JsonResponse({"error": str(e)}, status=500)
 
 class GroupMembers(APIView):
     def get(self,request):
