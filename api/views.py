@@ -86,7 +86,6 @@ class Owner_update(APIView):
         serializer = OwnwerUpdateSerializer(owner, data=request.data)
         if serializer.is_valid():
             serializer.save()
-            
             return Response(serializer.data, status=status.HTTP_200_OK)
         print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -759,7 +758,7 @@ class Profile(APIView):
         try:
             user2 = request.GET.get('user')
             user = Owner.objects.get(username=username)
-            if(user2!=username):
+            if(user2 is not None and user2!=username):
                    user2=Owner.objects.get(username=user2)
             else:
                 user2=user
@@ -784,6 +783,7 @@ class Profile(APIView):
                 'good': 1 if Friend.objects.filter(user1=user, user2=user2).exists() else 1 if Friend.objects.filter(user2=user, user1=user2).exists() else 0,
                 'status': 1 if Friend.objects.filter(user1=user, user2=user2).exists() else 1 if Friend.objects.filter(user2=user, user1=user2).exists() else 0,
                  'img_privacy': 0,
+                 'walk_type':user.walk_type
             }
             print(user)
            
@@ -962,10 +962,12 @@ class FaceApiCompare:
             "image_base64_2": image_base64_2,
         }
 
+
         # Send POST request to Face++ API
         response = requests.post(self.URL, data=payload)
+        if(response.json().get('error_message')):
+            return "Error: {}".format(response.json().get('error_message'))
         response_json = response.json()
-
         # Process the response and return the result
         confidence = response_json.get('confidence', 0)
         threshold = 50
@@ -1000,10 +1002,10 @@ class CompareImagesView(APIView):
         # Convert images to base64 strings
         image_base64_1 = base64.b64encode(image_file1.read()).decode('utf-8')
         # image_base64_1 = base64.b64encode(image_file2.read()).decode('utf-8')
-
         # Download and save the second image file
         image_file2_url = "http://localhost:8000" + image_file2
-        image_file2_path = r"D:\STUDY MATERIAL\SAD Lab\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\image_file2.jpg"
+        image_base64_2=""
         response = requests.get(image_file2_url)
         if response.status_code == 200:
             # Save the image file
@@ -1015,6 +1017,9 @@ class CompareImagesView(APIView):
             with open(image_file2_path, "rb") as f:
                 image_base64_2 = base64.b64encode(f.read()).decode('utf-8')
         # Perform image comparison using FaceApiCompare class method
+        if not image_base64_2:
+            return JsonResponse({'error': 'Failed to download the Profile image file'}, status=500)
+
         result = face_api_compare.compare_images(image_base64_1, image_base64_2)
 
         # Return the comparison result as JSON response
@@ -1127,10 +1132,13 @@ class UpvoteAPIView(APIView):
                 print("banao")
                 upvote_instance = Upvote(Username=Owner.objects.get(username=username), blogid=blog)
                 upvote_instance.save()
-                upvote_instance1 = Upvote(Username=Owner.objects.get(username=username), blogid=blog)
-                upvote_instance1.save()
+                # upvote_instance1 = Upvote(Username=Owner.objects.get(username=username), blogid=blog)
+                # upvote_instance1.save()
+                print("dont be like that")
                 Noti=Notification(noti_type="Upvote",noti_msg="upvoted your blog",noti_sender=Owner.objects.get(username=username),noti_receiver=Owner.objects.get(username=blog.author),noti_status=0)
                 Noti.save()
+            upvoted = Upvote.objects.filter(
+                Username=Owner.objects.get(username=username), blogid=id)
             if len(upvoted)==1:
                 upvote_instance = Upvote(Username=Owner.objects.get(username=username), blogid=blog)
                 upvote_instance.save()
@@ -1287,8 +1295,8 @@ class WalkListView(APIView):
                 'member': 1 if WalkMember.objects.filter(walk_id=walk.walk_id,username=user).exists() else 0,
                 'not_ac': 1 if WalkMember.objects.filter(walk_id=walk.walk_id,username=user, accept=0).exists() else 0,
                 'cancel': 1 if WalkMember.objects.filter(walk_id=walk.walk_id,username=user, cancel=1).exists() else 0,
-                #time banate hbe
-            }
+                'time': walk.time
+             }
             walks_data.append(walk_data)
         print(walks_data)
         return Response(walks_data, status=status.HTTP_200_OK)
@@ -1296,13 +1304,16 @@ class WalkListView(APIView):
     @csrf_exempt
     def post(self, request):
         data = request.data
+        print(data)
         username = data.get('w_creator')
         user = Owner.objects.get(username=username)
         data['propose_date'] = data['walk_date']
         data['privacy'] = "Bondhu"
         data['w_creator'] = user.id
         serializer = WalkSerializer(data=data)
+    
         if serializer.is_valid():
+            print(serializer)
             serializer.save()
             walk_member=WalkMember(walk_id=Walk.objects.get(walk_id=serializer.data['walk_id']),username=user,accept=1,cancel=0)
             walk_member.save()
@@ -1394,7 +1405,7 @@ class BlogCommentsView(APIView):
                     'author': blog.username.username,
                     'author_img': Owner.objects.get(username=blog.username).p_image.url if Owner.objects.get(username=blog.username).p_image else "/media/image/download_lsX6bjA6.jpeg",
                     'content': blog.comment,
-                    'time': blog.time,
+                    'time': blog.time.strftime('%Y-%m-%d %H:%M:%S'),
                     'blog': blog.blogid.blogid
                 }
                 blogs_data.append(blog_data)
@@ -1434,7 +1445,7 @@ class CommentCreateView(CreateAPIView):
             blog.save()
         return Response({"message": "Comment created successfully"}, status=status.HTTP_201_CREATED)
 
-
+#GOOD ONE
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import JsonResponse
@@ -1481,7 +1492,9 @@ class HTimeline(APIView):
 
         # Sort blogs based on cosine similarity
         similarity_scores = similarity_matrix.mean(axis=0)  # Taking mean across user content
-        sorted_indices = np.argsort(similarity_scores)[::-1]  # Sort indices in descending order
+        sorted_indices = [int(i) for i in np.argsort(similarity_scores)[::-1]]
+        # Retrieve sorted blogs
+        sorted_blogs = [all_blogs[i] for i in sorted_indices]
 
         blogs_data = []
         for idx in sorted_indices:
@@ -1600,6 +1613,16 @@ class Handlemember(APIView):
                 members[0].accept=1
                 members[0].save()
                 return Response({"user": members[0].username.username})
+        if request.data['type'] == 'delete':
+            walk_id=request.data['walk_id']
+            user_id=request.data['id']
+            user=Owner.objects.get(id=user_id)
+            walk=Walk.objects.get(walk_id=walk_id)
+            members=WalkMember.objects.filter(walk_id=walk,username=user)
+            print(members)
+            if(len(members)>0):
+                members[0].delete()
+                return Response({"user": members[0].username.username})
             return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 from .models import Group
 class Add_group(APIView):
@@ -1644,7 +1667,7 @@ class GroupProfile(APIView):
             'username': group.G_username,
             'name': group.G_name,
              'img': group.Creator.p_image.url if group.Creator.p_image else "/media/image/download_lsX6bjA6.jpeg",
-            'creator': group.Creator.username,
+            'admin': group.Creator.username,
             'created_date': group.CreatedDate,
             'privacy': group.Privacy,
             'topic': group.Topic,
@@ -1736,7 +1759,7 @@ class AddGroupPost(CreateAPIView):
         #print(blog_img)
         if blog_img is not None:
             blog = GroupPost.objects.create(
-                    G_username=Group.objects.get(G_username=data['gp']),
+                    G_username=Group.objects.get(G_username=data['group_username']),
                     p_username=user,
                     GPost_contents=data['content'],
                     GPost_date=data['post_date'],
@@ -1756,218 +1779,6 @@ class AddGroupPost(CreateAPIView):
             )
             blog.save()
         return Response({"message": "Group Blog created successfully"}, status=status.HTTP_201_CREATED)
-
-class GroupMembers(APIView):
-    def get(self,request):
-        username=request.GET.get('username')
-        print(username)
-        group=Group.objects.get(G_username=username)
-        members=GroupMember.objects.filter(G_username=group,accept=1)
-        print(members)
-        members_data=[]
-        for member in members:
-            members_data.append({
-                'id': member.MemberID,
-                'username': member.member.username,
-                'img': member.member.p_image.url if member.member.p_image else "/media/image/download_lsX6bjA6.jpeg",
-                'first_name': member.member.first_name,
-                'last_name': member.member.last_name,
-                'email': member.member.email,
-                'phone': member.member.phone,
-                'dob': member.member.dob,
-                'Since': member.JoinDate,
-                'gender': member.member.gender,
-            })
-        print(members_data)
-        return Response(members_data)
-
-class RequestMembers(APIView):
-    def get(self,request):
-        username=request.GET.get('username')
-        print(username)
-        group=Group.objects.get(G_username=username)
-        members=GroupMember.objects.filter(G_username=group,accept=0)
-        print(members)
-        members_data=[]
-        for member in members:
-            members_data.append({
-                'member_id': member.MemberID,  
-                'id': member.member.id,
-                'username': member.member.username,
-                'img': member.member.p_image.url if member.member.p_image else "/media/image/download_lsX6bjA6.jpeg",
-                'first_name': member.member.first_name,
-                'last_name': member.member.last_name,
-                'email': member.member.email,
-                'phone': member.member.phone,
-                'dob': member.member.dob,
-                'Since': member.JoinDate,
-            })
-        print(members_data)
-        return Response(members_data)
-
-class GroupRequest(APIView):
-    def post(self,request):
-        data=request.data
-        print(data)
-        group=GroupMember.objects.filter(G_username=Group.objects.get(G_username=data['group']),member_id=Owner.objects.get(id=data['user_id']).id)
-        if(len(group)==0):
-            return Response({"msg": "User not found"})
-        print(group[0])
-        group=group[0]
-        if(data['type']=='Delete'):
-            group.delete()
-            return Response({"message": "Request deleted successfully"}, status=status.HTTP_201_CREATED)
-        if(data['type']=="confirm"):
-            group.accept=1; 
-            group.save()
-            return Response({"message": "Request accepted successfully"}, status=status.HTTP_201_CREATED)
-        if(data['type']=="Block"):
-            group.Block=1
-            group.save()
-            return Response({"message": "Request blocked successfully"}, status=status.HTTP_201_CREATED)
-        if(data['type']=="Unblock"):
-            group.Block=0
-            group.save()
-            return Response({"message": "Request unblocked successfully"}, status=status.HTTP_201_CREATED)
-        if(data['type']=="Remove"):
-            group.delete()
-            return Response({"message": "Request removed successfully"}, status=status.HTTP_201_CREATED)
-        return Response({"message": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
-
-from django.core.files.uploadedfile import InMemoryUploadedFile
-import numpy as np
-import io
-import easyocr
-import cv2
-import re
-
-class NIDImage(APIView):
-    def post(self,request):
-        data=request.data
-        print(data)
-        img = request.FILES.get('nid')
-        if img is None:
-            if data['nidtext'] is not None:
-                img=data['nidtext']
-
-            else:
-              return Response({"msg": "NID doesnt found"})
-        text = []
-        if isinstance(img, InMemoryUploadedFile):
-            # Read the file content as bytes
-            image_bytes = img.read()
-            # Convert bytes to numpy array
-            nparr = np.frombuffer(image_bytes, np.uint8)
-            # Load image using OpenCV
-            img_cv = cv2.imdecode(nparr, cv2.IMREAD_COLOR)
-            # Process the image with EasyOCR
-            reader = easyocr.Reader(['en', 'bn'], gpu=True)
-            result = reader.readtext(img_cv)
-
-            # Continue with processing the result
-            # with open("nid.txt", 'w', encoding='utf-8') as f:
-            #     for detection in result:
-            #         text.append(detection[1])
-            #         f.write(detection[1])
-            #         f.write('\n')
-            #         print(detection[1])
-            #     f.close()
-            for detection in result:
-                print(detection[1])
-                text.append(detection[1])
-
-            name_pattern = r'STUDENT\s+NAME\s+(.*)'
-            dob_pattern = r'DATE\s+OF\s+BIRTH\s+(.*)'
-            nationality_pattern = r'NATIONALITY\s+(.*)'
-
-            # Initialize variables to store extracted information
-            student_name = None
-            date_of_birth = None
-            nationality = None
-
-            # Iterate through detected text and apply regex patterns
-            for line in text:
-                name_match = re.match(name_pattern, line)
-                if name_match:
-                    student_name = name_match.group(1).strip()
-                
-                dob_match = re.match(dob_pattern, line)
-                if dob_match:
-                    date_of_birth = dob_match.group(1).strip()
-                
-                nationality_match = re.match(nationality_pattern, line)
-                if nationality_match:
-                    nationality = nationality_match.group(1).strip()
-
-            # Print the extracted information
-            print("Student Name: ", student_name)
-            print("Date of Birth: ", date_of_birth)
-            print("Nationality: ", nationality)
-
-        else:
-            # If img is a file path or URL
-            IMAGE_PATH = img
-            reader = easyocr.Reader(['en', 'bn'], gpu=True)
-            result = reader.readtext(IMAGE_PATH)
-        print(text)
-        return Response({"message": "NID Read successfully"}, status=status.HTTP_201_CREATED)
-
-
-
-class NIDText(APIView):
-    def post(self,request):
-        data=request.data
-        print(data)
-        if(NID.objects.filter(NID_number=data['nid']).exists()):
-            return Response({"msg": "NID already exists"})
-        nid=NID.objects.create(NID_number=data['nid'],NID_text=data['text'])
-        nid.save()
-        return Response({"message": "NID created successfully"}, status=status.HTTP_201_CREATED)
-
-
-
-# from django.http import JsonResponse
-# from django.views import View
-# from PIL import Image
-# from pyzbar.pyzbar import decode
-
-# from django.http import JsonResponse
-# from django.views import View
-# from PIL import Image
-# from pyzbar.pyzbar import decode
-
-# class DecodeImageView(View):
-#     def decode_image(self, image):
-#         # Decode the barcode from the image
-#         decoded_objects = decode(image)
-
-#         # Extract decoded text from the decoded objects
-#         decoded_text = []
-#         for obj in decoded_objects:
-#             decoded_text.append(obj.data.decode('utf-8'))
-
-#         return decoded_text
-
-#     def post(self, request, *args, **kwargs):
-#         try:
-#             # Check if 'image' file is present in the request
-#             if 'image' not in request.FILES:
-#                 return JsonResponse({"error": "No image file found in the request"}, status=400)
-            
-#             # Get the 'image' file from the request
-#             image_file = request.FILES['image']
-
-#             # Open the image file using PIL
-#             image = Image.open(image_file)
-
-#             # Call the decode_image function to decode the barcode
-#             decoded_text = self.decode_image(image)
-
-#             # Return the decoded text
-#             return JsonResponse({"decoded_text": decoded_text})
-
-#         except Exception as e:
-#             return JsonResponse({"error": str(e)}, status=500)
 
 class GroupMembers(APIView):
     def get(self,request):
