@@ -1490,9 +1490,6 @@ class HTimeline(APIView):
         # Sort blogs based on cosine similarity
         similarity_scores = similarity_matrix.mean(axis=0)  # Taking mean across user content
         sorted_indices = np.argsort(similarity_scores)[::-1]  # Sort indices in descending order
-        sorted_indices = [int(i) for i in np.argsort(similarity_scores)[::-1]]
-        # Retrieve sorted blogs
-        sorted_blogs = [all_blogs[i] for i in sorted_indices]
 
         blogs_data = []
         for idx in sorted_indices:
@@ -1514,7 +1511,6 @@ class HTimeline(APIView):
 
         return Response(blogs_data)
     
-
 from .models import WalkMember
 class WalkMembers(APIView):
     def get_age(self, dob):
