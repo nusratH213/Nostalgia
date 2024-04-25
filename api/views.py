@@ -161,18 +161,16 @@ class login_api(views.APIView):
             print(user)
             if user is not None:
                 login(request,user)
-<<<<<<< HEAD
+
                 user=Owner.objects.get(username=username)
                 serializer = OwnerSerializer(user)
                 
-=======
                 user=Owner.objects.filter(username=username)
                 if len(user) > 0:
                     serializer = OwnerSerializer(user[0])
                     return Response({'auth': True,'user':serializer.data}, status=status.HTTP_200_OK)
                 serializer = OverseerSerializer(Overseer.objects.get(username=username))
 
->>>>>>> d702d7e62c69d8a8a2321ebc6c67810202bc9b1f
                 return JsonResponse({'auth': True,'user':serializer.data}, status=status.HTTP_200_OK)
         
         return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
