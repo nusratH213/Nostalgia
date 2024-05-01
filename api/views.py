@@ -1017,7 +1017,7 @@ class CompareImagesView(APIView):
         # Download and save the second image file
         image_file2_url = "http://localhost:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_2=""
         response = requests.get(image_file2_url)
         if response.status_code == 200:
@@ -1054,7 +1054,7 @@ class CompareImages(APIView):
         
         image_file1_url = "http://localhost:8000" + image_file2
         print(image_file1_url)
-        image_file1_path = r"D:\DEV\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file1_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_1=""
         response = requests.get(image_file1_url)
         if response.status_code == 200:
@@ -1073,7 +1073,7 @@ class CompareImages(APIView):
         # Download and save the second image file
         image_file2_url = "http://localhost:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_2=""
         response = requests.get(image_file2_url)
         if response.status_code == 200:
