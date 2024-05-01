@@ -431,15 +431,4 @@ class GroupReply(models.Model):
         return f"GroupComment ID: {self.cmnt_id}, Post ID: {self.Reply_id}, Username: {self.user}, Name: {self.Reply_msg}"        
 
 
-from .models import Owner
-class MedAlert(models.Model):
-    userid = models.ForeignKey(Owner, on_delete=models.CASCADE,primary_key=True)
-    alert_morning = models.DateTimeField()
-    alert_noon = models.DateTimeField()
-    alert_night = models.DateTimeField()
-    interval = models.IntegerField()
-    alert_message = models.CharField(max_length=255)
-
-    def __str__(self):
-     return f"Med Alert: Morning: {self.alert_morning}, Noon: {self.alert_noon}, Night: {self.alert_night}"
 
