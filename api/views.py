@@ -391,7 +391,9 @@ class FriendList(APIView):
 class FindFriend(APIView):
     def get(self, request):
         userid=request.GET.get('user_id')
-       # users = Owner.objects.exclude(id=userid)
+        if len(str(userid)) > 3:
+            userid = Owner.objects.get(username=userid)
+            userid = userid.id
         users = Owner.objects.all()
 
         # Serialize the data
@@ -646,7 +648,6 @@ from sklearn.metrics.pairwise import cosine_similarity
 from nltk.stem import WordNetLemmatizer
 
 class FriendSugg(APIView):
-
     def preprocess_text(self, text):
         # Tokenize text
         tokens = word_tokenize(text)
@@ -725,7 +726,6 @@ class FriendSugg(APIView):
         for other_user_tfidf in other_users_tfidf:
             similarity = cosine_similarity(user_tfidf, other_user_tfidf)
             similarities.append(similarity[0][0])
-        
         # Sort users based on similarity scores
         sorted_users = sorted(zip(users, similarities), key=lambda x: x[1], reverse=True)
         
@@ -2363,7 +2363,7 @@ class Event_request(APIView):
         event=Event.objects.get(EventID=event_id)
         bot=JoinEvent.objects.filter(EventID=event,Member=Owner.objects.get(username=username))
         if(len(bot)>0):
-            return Response({"user": bot[0].username.username})      
+            return Response({"user": bot[0].Member.username})      
         members=JoinEvent.objects.create(Member=Owner.objects.get(username=username),EventID=Event.objects.get(EventID=event_id),cancel=0,Approve=1)
         members.save()
         print("accept koro na?")
@@ -2420,7 +2420,7 @@ class TripMembers(APIView):
 
     def get(self,request):
         trip_id=request.GET.get('id')
-        trip=TripMember.objects.get(TripID=trip_id)
+        trip=Trip.objects.get(TripID=trip_id)
         members=TripMember.objects.filter(TripID=trip_id,cancel=0,Approve=1)
         members_data=[]
         print("ami hatar manush khuji akhon!")
@@ -2449,7 +2449,7 @@ class Trip_request(APIView):
         trip=Trip.objects.get(TripID=trip_id)
         bot=TripMember.objects.filter(TripID=trip,member=Owner.objects.get(username=username))
         if(len(bot)>0):
-            return Response({"user": bot[0].username.username})      
+            return Response({"user": bot[0].member.username})      
         members=TripMember.objects.create(member=Owner.objects.get(username=username),TripID=Trip.objects.get(TripID=trip_id),cancel=0,Approve=0)
         members.save()
         print("accept koro na?")
@@ -2539,6 +2539,7 @@ class MedicationBox(APIView):
                 'after': med.after,
                 'times':med_times,
                 'image': 'http://localhost:8000/media/d.png'
+
             })
         print(medications_data)
         return Response(medications_data)
@@ -2550,3 +2551,35 @@ class MedicationBox(APIView):
         med=Medication.objects.create(user=user,med_name=data['name'],note=data['note'],dose=data['dosage'],morning=1 if data['morning'] else 0,noon=1 if data['noon'] else 0,night=1 if data['night'] else 0,after=data['after'],meds_start_date=data['start_date'],meds_end_date=data['end_date'])
         med.save()
         return Response({"message": "Medication created successfully"}, status=status.HTTP_201_CREATED)
+from .models import DoneMed
+
+class Done(APIView):
+    def post(self,request):
+        print(request.data)
+        if request.data['type'] == 'done':
+                data=request.data
+                user=Owner.objects.get(username=data['username'])
+                date=data['date']
+                time=data['time']
+                done=DoneMed.objects.create(user=user,done_date=date,done_time=time)
+                done.save()
+                print("Done means done")
+        else :
+            data=request.data
+            user=Owner.objects.get(username=data['username'])
+            date=data['date']
+            time=data['time']
+            done=DoneMed.objects.filter(user=user,done_date=date,done_time=time)
+            if(len(done)>0):
+                done[0].delete()
+        return Response({"message": "Done successfully"}, status=status.HTTP_201_CREATED)
+    def get(self,request):
+        user=request.GET.get('username')
+        print(user)
+        user=Owner.objects.get(username=user)
+        date=request.GET.get('date')
+        time=request.GET.get('time')
+        done=DoneMed.objects.filter(user=user,done_date=date,done_time=time)
+        if(len(done)>0):
+            return Response({"done": 1})
+        return Response({"done": 0})
