@@ -774,7 +774,6 @@ class Profile(APIView):
             else:
                 b=None
             v=1 if b is not None else 0
-
             user={
                 'id': user.id,
                 'pp': user.p_image.url if user.p_image else "media\image\download_lX6bjA6.jpeg",
@@ -2576,6 +2575,7 @@ class Done(APIView):
             done=DoneMed.objects.filter(user=user,done_date=date,done_time=time)
             if(len(done)>0):
                 done[0].delete()
+            
         return Response({"message": "Done successfully"}, status=status.HTTP_201_CREATED)
     def get(self,request):
         user=request.GET.get('username')
@@ -2585,8 +2585,10 @@ class Done(APIView):
         time=request.GET.get('time')
         done=DoneMed.objects.filter(user=user,done_date=date,done_time=time)
         if(len(done)>0):
-            return Response({"done": 1})
-        return Response({"done": 0})
+            return Response({"done": "1"})
+        return Response({"done": "0"})
+
+        
 from .models import MedAlert
 
 class MedTime(APIView):
