@@ -2517,6 +2517,8 @@ class MedicationBox(APIView):
     def get(self, request):
         user=request.GET.get('username')
         print(user)
+        if "@" in user: 
+            user = user.split("@")[1]
         user=Owner.objects.get(username=user)
         medications=Medication.objects.filter(user=user)
         medications_data=[]
@@ -2550,7 +2552,10 @@ class MedicationBox(APIView):
         print("ye kiya hogaye")
         img = request.FILES.get('img')
         print(img)
-        user=Owner.objects.get(username=data['user'])
+        user=data['user']
+        if "@" in user: 
+            user = user.split("@")[1]
+        user=Owner.objects.get(username=user)
         med=Medication.objects.create(user=user,img=img,med_name=data['name'],note=data['note'],dose=data['dosage'],morning= data['morning'],noon= data['noon'],night=data['night'],after=data['after'],meds_start_date=data['start_date'],meds_end_date=data['end_date'])
         med.save()
         return Response({"message": "Medication created successfully"}, status=status.HTTP_201_CREATED)
@@ -2580,6 +2585,8 @@ class Done(APIView):
     def get(self,request):
         user=request.GET.get('username')
         print(user)
+        if "@" in user: 
+            user = user.split("@")[1]
         user=Owner.objects.get(username=user)
         date=request.GET.get('date')
         time=request.GET.get('time')
