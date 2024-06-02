@@ -624,7 +624,7 @@ class FriendSuggestion(APIView):
                 'f_created_date':Friend.objects.filter(user1=user, user2=sorted_user).values_list('f_created_date', flat=True).first() if Friend.objects.filter(user1=user, user2=sorted_user).exists() else Friend.objects.filter(user2=user, user1=sorted_user).values_list('f_created_date', flat=True).first() if Friend.objects.filter(user2=user, user1=sorted_user).exists() else None,
                 'f_id': Friend.objects.filter(user1=user, user2=sorted_user).values_list('f_id', flat=True).first() if Friend.objects.filter(user1=user, user2=sorted_user).exists() else Friend.objects.filter(user2=user, user1=sorted_user).values_list('f_id', flat=True).first() if Friend.objects.filter(user2=user, user1=sorted_user).exists() else None,
                 'abedon': 1 if Friend.objects.filter(user1=user, user2=sorted_user).exists() else 0,
-                'good': 1 if Friend.objects.filter(user1=user, user2=sorted_user).exists() else 1 if Friend.objects.filter(user2=user, user1=sorted_user).exists() else 0,
+                'good': user.username if Friend.objects.filter(user1=user, user2=sorted_user).exists() else sorted_user.username if Friend.objects.filter(user2=user, user1=sorted_user).exists() else 0,
                 'status': 1 if Friend.objects.filter(user1=user, user2=sorted_user).exists() else 1 if Friend.objects.filter(user2=user, user1=sorted_user).exists() else 0,
                  })
 
@@ -665,7 +665,7 @@ class FriendSugg(APIView):
     def get(self, request):
         userid = request.GET.get('user_id')
         # Retrieve the user
-        user = Owner.objects.get(username=userid)
+        user = Owner.objects.get(id=userid)
         # Retrieve the IDs of the user's friends where user1 is the given user
         friend_ids = Friend.objects.filter(user1=user, is_fnf=1).values_list('user2_id', flat=True)
         # Retrieve the IDs of the user's friends where user2 is the given user
@@ -745,13 +745,13 @@ class FriendSugg(APIView):
                 'address': sorted_user.address,
                 'nid': sorted_user.nid,
                 'thana': Thana.objects.get(thana=sorted_user.thana).thana,
-                'p_image': sorted_user.p_image.url if sorted_user.p_image else 'media/image/download_lX6bjA6.jpeg',
+                'pp': sorted_user.p_image.url if sorted_user.p_image else 'media/image/download_lX6bjA6.jpeg',
                 'is_fnf': 0,
                 'type': Friend.objects.filter(user1=user, user2=sorted_user).values_list('type', flat=True).first() if Friend.objects.filter(user1=user, user2=sorted_user).exists() else Friend.objects.filter(user2=user, user1=sorted_user).values_list('type', flat=True).first() if Friend.objects.filter(user2=user, user1=sorted_user).exists() else None,
                 'f_created_date':Friend.objects.filter(user1=user, user2=sorted_user).values_list('f_created_date', flat=True).first() if Friend.objects.filter(user1=user, user2=sorted_user).exists() else Friend.objects.filter(user2=user, user1=sorted_user).values_list('f_created_date', flat=True).first() if Friend.objects.filter(user2=user, user1=sorted_user).exists() else None,
                 'f_id': Friend.objects.filter(user1=user, user2=sorted_user).values_list('f_id', flat=True).first() if Friend.objects.filter(user1=user, user2=sorted_user).exists() else Friend.objects.filter(user2=user, user1=sorted_user).values_list('f_id', flat=True).first() if Friend.objects.filter(user2=user, user1=sorted_user).exists() else None,
                 'abedon': 1 if Friend.objects.filter(user1=user, user2=sorted_user).exists() else 0,
-                'good': 1 if Friend.objects.filter(user1=user, user2=sorted_user).exists() else 1 if Friend.objects.filter(user2=user, user1=sorted_user).exists() else 0,
+                'good': user.username if Friend.objects.filter(user1=user, user2=sorted_user).exists() else sorted_user.username if Friend.objects.filter(user2=user, user1=sorted_user).exists() else 0,
                 'status': 1 if Friend.objects.filter(user1=user, user2=sorted_user).exists() else 1 if Friend.objects.filter(user2=user, user1=sorted_user).exists() else 0,
                  })
         return Response({"users": serialized_data, "message": "User suggestions retrieved successfully"}, status=status.HTTP_200_OK)
@@ -1768,7 +1768,7 @@ class My_Group(APIView):
                 'privacy': group.Privacy,
                 'topic': group.Topic,
                 'time': group.time,
-                'gp': group.Creator.p_image.url if group.Creator.p_image else "/media/image/download_lsX6bjA6.jpeg",
+                'img': group.img.url if group.img else "/media/image/download_lsX6bjA6.jpeg",
                 'member': 1 if GroupMember.objects.filter(G_username=group,member_id=user,accept=1).exists() else 0
 
             })
@@ -1791,12 +1791,11 @@ class Not_My_Group(APIView):
                 'privacy': group.Privacy,
                 'topic': group.Topic,
                 'time': group.time,
-                'gp': group.Creator.p_image.url if group.Creator.p_image else "/media/image/download_lsX6bjA6.jpeg",
+                'img': group.img.url if group.img else "/media/image/download_lsX6bjA6.jpeg",
                 'member': 1 if GroupMember.objects.filter(G_username=group,member_id=user,accept=1).exists() else 0
             })
         return Response(groups_data)
-
-from .models import GroupMember 
+from .models import GroupMember
 class GroupProfile(APIView):
     def get(self,request,username):
         print("asi nai grope profile")
@@ -1807,14 +1806,16 @@ class GroupProfile(APIView):
         data={
             'username': group.G_username,
             'name': group.G_name,
-             'img': group.Creator.p_image.url if group.Creator.p_image else "/media/image/download_lsX6bjA6.jpeg",
+            'img': group.img.url if group.img else "/media/image/download_lsX6bjA6.jpeg",
             'admin': group.Creator.username,
             'created_date': group.CreatedDate,
             'privacy': group.Privacy,
             'topic': group.Topic,
             'time': group.time,
+            'admin': group.Creator.username,
             'gp': group.Creator.p_image.url if group.Creator.p_image else "/media/image/download_lsX6bjA6.jpeg",
-             'member': 1 if GroupMember.objects.filter(G_username=group,member_id=user,accept=1).exists() else 0
+             'member': 1 if GroupMember.objects.filter(G_username=group,member_id=user,accept=1).exists() else 0,
+             'accept': 1 if GroupMember.objects.filter(G_username=group,member_id=user,accept=0).exists() else 0
         }
         print(data)
         return Response(data)
@@ -1824,7 +1825,7 @@ class GP_post(APIView):
         username=request.GET.get('username')
         print(username)
         group=Group.objects.get(G_username=username)
-        posts=GroupPost.objects.filter(G_username=group)
+        posts=GroupPost.objects.filter(G_username=group).order_by('-GPost_date','-GPost_Time')
         posts_data=[]
         for post in posts:
             posts_data.append({
@@ -1835,7 +1836,7 @@ class GP_post(APIView):
                 'author_img': post.p_username.p_image.url if post.p_username.p_image else "/media/image/download_lsX6bjA6.jpeg",
                 'content': post.GPost_contents,
                 'post_date': post.GPost_date,
-                'post_time': post.GPost_Time,
+                'post_time': post.GPost_date,
                 'post_img': post.GPost_image.url if post.GPost_image else None,
                 # 'upvote': GroupUpvote.objects.filter(post_id=post).count(),
                 # 'is_upvoted': 1 if GroupUpvote.objects.filter(post_id=post,Username=Owner.objects.get(username=username)).exists() else 0
@@ -1849,7 +1850,7 @@ class GT_post(APIView):
         # group=Group.objects.get(G_username=username)
         # posts=GroupPost.objects.filter(G_username=group)
         groups=GroupMember.objects.filter(member_id=Owner.objects.get(username=username),accept=1).values_list('G_username',flat=True).distinct()
-        posts=GroupPost.objects.filter(G_username__in=groups)
+        posts=GroupPost.objects.filter(G_username__in=groups).order_by('-GPost_date','-GPost_Time')
         posts_data=[]
         for post in posts:
             posts_data.append({
@@ -1898,7 +1899,7 @@ class AddGroupPost(CreateAPIView):
         #print(blog_img)
         if blog_img is not None:
             blog = GroupPost.objects.create(
-                    G_username=Group.objects.get(G_username=data['group_username']),
+                    G_username=Group.objects.get(G_username=data['gp']),
                     p_username=user,
                     GPost_contents=data['content'],
                     GPost_date=data['post_date'],
@@ -2734,3 +2735,122 @@ class AddHandler(APIView):
         add = Additional.objects.create(user=user, type=type, content=content)
         add.save()
         return Response({"message": "Extra Info added successfully"}, status=status.HTTP_201_CREATED)
+
+class PostUpdate(APIView):
+    def put(self,request):
+        data=request.data
+        print(data)
+        post=Blog.objects.get(blogid=data['id'])
+        post.content=data['content']
+        post.save()
+        return Response({"message": "Post updated successfully"}, status=status.HTTP_201_CREATED)
+    def post(self,request):
+        data=request.data
+        print(data)
+        post=Blog.objects.get(blogid=data['id'])
+        post.delete()
+        return Response({"message": "Post deleted successfully"}, status=status.HTTP_201_CREATED)
+
+class SearchFndBox(APIView):
+    def get(self,request):
+        search=request.GET.get('search')
+        box=Owner.objects.get(username=request.GET.get('username'))
+        userbox=Owner.objects.filter(Q(username__icontains=search) | Q(first_name__icontains=search) | Q(last_name__icontains=search))
+        user_data=[]
+        users=Owner.objects.all()
+        for user in users:
+            fnd=Friend.objects.filter(user1=Owner.objects.get(id=box.id),user2=user.id)
+            fnd2=Friend.objects.filter(user2=Owner.objects.get(id=box.id),user1=user.id)
+            fnd=fnd[0] if len(fnd) > 0 else None
+            if user not in userbox:
+                continue
+            if(fnd is not None and fnd.is_fnf ==1) or (len(fnd2)>0  and fnd2[0].is_fnf==1):
+                    user_data.append({
+                        'id': user.id,
+                        'pp': user.p_image.url if user.p_image else "media\image\download_lX6bjA6.jpeg",
+                        'first_name': user.first_name,
+                        'username': user.username,
+                        'last_name': user.last_name,
+                        'email': user.email,
+                        'gender': user.gender,
+                        'phone': user.phone,
+                        'dob': user.dob,
+                        'address': user.address,
+                        'nid': user.nid,
+                        'thana': Thana.objects.get(thana=user.thana_id).thana,
+                        'is_fnf': fnd.is_fnf if fnd is not None else fnd2[0].is_fnf if len(fnd2)>0 else None,
+                        'type': fnd.type if fnd is not None else fnd2[0].type if len(fnd2)>0 else None,
+                        'f_created_date': fnd.f_created_date if fnd is not None else  None,
+                        'f_id': fnd.f_id if fnd is not None else None,
+                        'abedon': 1 if fnd is not None else 0,
+                        'good': fnd.user1.username if fnd is not None else None,
+                        'msg': "gd night",
+                        'time': "12:00",
+                    })
+        print(user_data)
+        return Response({"users": user_data, "message": "User information retrieved successfully"}, status=status.HTTP_200_OK)
+
+
+class Addinfo(APIView):
+    # def post(self,request):
+    #     data=request.data
+    #     print(data)
+    #     user=Owner.objects.get(username=data['username'])
+    #     add=Additional.objects.create(user=user,type=data['type'],content=data['content'])
+    #     add.save()
+    #     return Response({"message": "Additional info added successfully"}, status=status.HTTP_201_CREATED)
+    def get(self,request):
+        user=Owner.objects.get(id=request.GET.get('user_id'))
+        add=Additional.objects.filter(user=user)
+        add_data=[]
+        for a in add:
+            add_data.append({
+                'id': a.id,
+                'type': 1 if a.type=="Study" or a.type == "College" or a.type=="School" or a.type=="University"  else 0,
+                'content': a.content
+            })
+        return Response(add_data)
+class UpdateGroup(APIView):
+    def post(self,request):
+        data=request.data
+        print(data)
+        img=request.FILES.get('img')
+        group=Group.objects.get(G_username=data['username'])
+        group.G_name=data['name']
+        group.Privacy=data['privacy']
+        group.Topic=data['topic']
+        if(img):
+            group.img=img
+       # group.G_description=data['gdescription']
+        group.save()
+        return Response({"message": "Group updated successfully"}, status=status.HTTP_201_CREATED)
+class BoxImg(APIView):
+    def post(self,request):
+        data=request.data
+        print(data)
+        img=request.FILES.get('img')
+        box.img=BoxIMG.create(img=img)
+        print(box)
+        user.save()
+        
+        return Response({"message": "Image updated successfully",'img':box.img}, status=status.HTTP_201_CREATED)
+
+
+from api.models import Division,Thana,District
+class FindThana(APIView):
+    def get(self,request):
+        data=request.GET.get('district')
+        thana_names = [thana for thana in Thana.objects.filter(division_id=data).values_list('thana', flat=True)]
+        #.values('thana')
+        
+        return Response(thana_names)
+class FindDistrict(APIView):
+    def get(self,request):
+        data=request.GET.get('division')
+        district=District.objects.filter(division_id=data)
+        #.values('district')
+        print(district)
+        district_data=[]
+        district_names = [district for district in District.objects.filter(division_id=data).values_list('district', flat=True)]
+        print(district_names)
+        return JsonResponse(district_names, safe=False)
