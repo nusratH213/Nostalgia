@@ -2151,7 +2151,7 @@ class NIDImage(APIView):
         mti=match(user.nid,id)
         if(mti>=9 and mtn>=(len(uname)-(len(uname)//6))):
                 print(str(user.p_image))
-                image_file2_path = r"D:\DEV\Django\Nostalgia\media\1.png"
+                image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\1.png"
                 with open(image_file2_path, "wb") as f:
                     for chunk in img.chunks():
                         f.write(chunk)
