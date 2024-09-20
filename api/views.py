@@ -2551,11 +2551,7 @@ class TripMembers(APIView):
         return age
     def get(self,request):
         trip_id=request.GET.get('id')
-<<<<<<< HEAD
-        trip=Trip.objects.get(TripID=trip_id)
-=======
         # trip=TripMember.objects.get(TripID=trip_id)
->>>>>>> c343737696886a9665957d4d5bfebdbf24f8f661
         members=TripMember.objects.filter(TripID=trip_id,cancel=0,Approve=1)
         members_data=[]
         print("ami hatar manush khuji akhon!")
