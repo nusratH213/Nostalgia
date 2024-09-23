@@ -836,20 +836,18 @@ class OTPAPI(APIView):
             # Send verification email with the verification code
 
             #uncomment when send mail....
-            #self.send_verification_email(email_address, verification_code)
+            # self.send_verification_email(email_address, verification_code)
             return Response({"message": "Verification email sent successfully", "code": verification_code,"username":user.username}, status=status.HTTP_200_OK)
         except Owner.DoesNotExist:
                 print("User not found")
                 return Response({"message": "User not found"}, status=status.HTTP_404_NOT_FOUND)
-        
-
+                
     def send_verification_email(self, email_address, verification_code):
         # Send verification email using Django's email functionality
         subject = 'Email Verification Code from Nostalgia'
         message = f'Your verification code is: {verification_code}'
         from_email = settings.EMAIL_HOST_USER
         recipient_list = [email_address]
-
         send_mail(subject, message, from_email, recipient_list)
 
 
@@ -1415,7 +1413,7 @@ class NotificationView(APIView):
         username = request.GET.get('username')
         print("notification Bro....")
         print(username)
-        noti = Notification.objects.filter(noti_receiver=Owner.objects.get(username=username)).order_by('noti_date','-noti_time')
+        noti = Notification.objects.filter(noti_receiver=Owner.objects.get(username=username)).order_by('-noti_date','-noti_time')
         noti_data = []
         for n in noti:
             noti_data.append({
@@ -1560,9 +1558,9 @@ class HTimeline(APIView):
             user_content.append(blog.content)
         for comment in user_comments:
             user_content.append(comment.comment)
+
         # Get all blogs excluding the user's blogs
         all_blogs = Blog.objects.exclude(author__username=username)
-        # Combine the content of all blogs and comments
         all_content = []
         for blog in all_blogs:
             all_content.append(blog.content)
@@ -1593,7 +1591,7 @@ class HTimeline(APIView):
                 if isinstance(post, Blog):
                     combined_text += post.content + ' '
                 elif isinstance(post, Comment):
-                    combined_text += post.comment + ' '  # Adjust this according to your Comment model
+                    combined_text += post.comment + ' '
                 elif isinstance(post, GroupPost):
                     combined_text += post.GPost_contents + ' '
             return combined_text
@@ -1638,8 +1636,9 @@ class HTimeline(APIView):
         # Sort posts based on similarity scores
         sorted_posts = sorted(similarities, key=lambda x: x[1], reverse=True)
         sorted_posts = [post for post, similarity in sorted_posts]
-        userbox=Friend.objects.filter()
+        userbox = Friend.objects.filter()
         blogs_data = []
+
         # Retrieve the IDs of the user's friends where user1 is the given user
         friend_ids = Friend.objects.filter(user1=user, is_fnf=1).values_list('user2_id', flat=True)
         # Retrieve the IDs of the user's friends where user2 is the given user
@@ -1651,23 +1650,19 @@ class HTimeline(APIView):
         friend_ids.append(user.id)
         # Combine the friend IDs
         friend_ids.extend(friend_ids2)
-        ninety_days_ago = datetime.now().date() - timedelta(days=90)
-        date= datetime.now().date()
+
         for post in sorted_posts:
             blog = Blog.objects.filter(blogid=post.blogid)
             if blog.exists():
                 blog = blog[0]
                 if blog.author.id not in friend_ids and blog.author.username != username:
                     continue
-                if blog.post_date + timedelta(days=90) < date:
-                    continue
                 blog_data = {
                     'id': blog.blogid,
                     'author': blog.author.username,
                     'author_img': blog.author.p_image.url if blog.author.p_image else "/media/image/download_lsX6bjA6.jpeg",
                     'content': blog.content,
-                    'post_date': blog.post_date,
-                    'post_time': blog.post_time,
+                    'post_date': blog.post_date,  # Keep post_date, remove post_time
                     'blog_img': blog.blog_img.url if blog.blog_img else None,
                     'upvote': blog.upvote_set.count(),
                     'is_upvoted': 1 if blog.upvote_set.filter(Username__username=username).exists() else 0
