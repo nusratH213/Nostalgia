@@ -1011,7 +1011,7 @@ class CompareImagesView(APIView):
         image_base64_1 = base64.b64encode(image_file1.read()).decode('utf-8')
         # image_base64_1 = base64.b64encode(image_file2.read()).decode('utf-8')
         # Download and save the second image file
-        image_file2_url = "http://localhost:8000" + image_file2
+        image_file2_url = "http://10.15.9.45:8000" + image_file2
         print(image_file2_url)
         image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_2=""
@@ -1048,7 +1048,7 @@ class CompareImages(APIView):
         if not (image_file1 and image_file2):
             return JsonResponse({'error': 'Missing image data in request'}, status=400)
         
-        image_file1_url = "http://localhost:8000" + image_file2
+        image_file1_url = "http://10.15.9.45:8000" + image_file2
         print(image_file1_url)
         image_file1_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_1=""
@@ -1067,7 +1067,7 @@ class CompareImages(APIView):
             return JsonResponse({'error': 'Failed to download the Profile image file'}, status=500)
         # image_base64_1 = base64.b64encode(image_file2.read()).decode('utf-8')
         # Download and save the second image file
-        image_file2_url = "http://localhost:8000" + image_file2
+        image_file2_url = "http://10.15.9.45:8000" + image_file2
         print(image_file2_url)
         image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_2=""
@@ -2069,7 +2069,7 @@ class NIDImage(APIView):
     def post(self,request):
 
         def compare_nid(image1, image2):
-            url = 'http://127.0.0.1:8000/comparenid'
+            url = 'http://10.15.9.45:8000/comparenid'
             try:
                 response = requests.post(url, data={'image2': "/media/"+image1,'image1': image2})
                 response.raise_for_status()  # Raise an exception for HTTP errors
