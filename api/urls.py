@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import MyModelListCreateAPIView,MyAPIView,_sign,sign,login_api,ChangePass,show,friends,Owner_update,O_update,UserLogin
+from .views import MyAPIView,_sign,sign,login_api,ChangePass,show,friends,Owner_update,O_update,UserLogin
 from .views import CustomTokenObtainPairView, CustomTokenRefreshView, HelloWorldView,add_fnf,Profile
 from .views import CustomTokenObtainPairView, CustomTokenRefreshView, HelloWorldView
 from .views import PlanEventCreateAPIView, PlanEventListAPIView, PlanEventUpdateAPIView
@@ -8,10 +8,8 @@ from .views import CustomTokenObtainPairView, CustomTokenRefreshView, HelloWorld
 from django.conf import settings
 from django.conf.urls.static import static
 from django.urls import path, include
-
-
-urlpatterns = [
-    path('', MyModelListCreateAPIView.as_view(), name='mymodel-list-create'),
+urlpatterns=[
+    # path('', MyModelListCreateAPIView.as_view(), name='mymodel-list-create'),
     path('orm', MyAPIView.as_view(), name='MyAPIView'),
     path('changepass', ChangePass.as_view(), name='changepass'),
     path('login', login_api.as_view(), name='login'),
@@ -38,36 +36,64 @@ urlpatterns = [
     path('addblog', views.BlogCreateView.as_view(), name='addblog'),
     path('add_group', views.Add_group.as_view(), name='add_group'),
     path('my_groups', views.My_Group.as_view(), name='my_groups'),
+    path('!my_groups', views.Not_My_Group.as_view(), name='!my_groups'),
     path('g_profile/<username>', views.GroupProfile.as_view(), name='g_profile'),
     path('gp_post', views.GP_post.as_view(), name='GP_post'),
     path('gt_post', views.GT_post.as_view(), name='GT_post'),
-    path('groupupvote', views.UpvoteAPIView.as_view(), name='GroupUpvote'),
     path('api/events/create/', PlanEventCreateAPIView.as_view(), name='event-create'),
     path('api/events/list/', PlanEventListAPIView.as_view(), name='event-list'),
     path('api/events/update/<int:pk>/', PlanEventUpdateAPIView.as_view(), name='event-update'),
     path('compare', views.CompareImagesView.as_view(), name='compare_images'),
+    path('comparenid', views.CompareImages.as_view(), name='compare_images'),
     path('upvote', views.UpvoteAPIView.as_view(), name='upvote'),
     path('walk', views.WalkListView.as_view(), name='walk'),
-    path('walk_members', views.WalkMembers.as_view(), name='walk_members'),
+    path('walkmembers', views.WalkMembers.as_view(), name='walk_members'),
     path('delete_fnd', views.Delete_fnd.as_view(), name='delete_fnd'),
     path('notification', views.NotificationView.as_view(), name='notification'),
     path('comments', views.BlogCommentsView.as_view(), name='comments'),
     path('comment', views.CommentCreateView.as_view(), name='newcomment'),
     path('htimeline', views.HTimeline.as_view(), name='htimeline'),
     path('walk_request', views.Walk_request.as_view(), name='walk_request'),
-    path('walkmembers', views.WalkNotMember.as_view(), name='walkmembers'),
+    path('walk!members', views.WalkNotMember.as_view(), name='walk!members'),
     path('handlemember', views.Handlemember.as_view(), name='Handlemember'),
     path('join_group', views.JoinGroup.as_view(), name='join_group'),
     path('addgroupost', views.AddGroupPost.as_view(), name='addgroupost'),
-    # path('groupmembers', views.GroupMembers.as_view(), name='groupmembers'),
-    # path('requestmembers',views.RequestMembers.as_view(), name='requestmembers'),
-    # path('grouprequest',views.GroupRequest.as_view(), name='grouprequest'),
-    # path('friendsugg',views.FriendSugg.as_view(), name='friendsugg'),
+    path('groupmembers', views.GroupMembers.as_view(), name='groupmembers'),
+    path('requestmembers',views.RequestMembers.as_view(), name='requestmembers'),
+    path('grouprequest',views.GroupRequest.as_view(), name='grouprequest'),
+    path('friendsugg',views.FriendSugg.as_view(), name='friendsugg'),
+    path('caregiver',views.CareGiver.as_view(), name='caregiver'),
+    path('medication',views.MedicationBox.as_view(), name='medication'),
+    path('done',views.Done.as_view(), name='done'),
     # path('nidtext',views.NIDText.as_view(), name='nidtext'),
-    # path('nidimg',views.NIDImage.as_view(), name='nidimg'),
+    path('nidimg',views.NIDImage.as_view(), name='nidimg'),
     # path('dnid',views.DecodeImageView.as_view(), name='dnid'),
+    path('event', views.EventListView.as_view(), name='event'),
+    path('eventmembers', views.EventMembers.as_view(), name='event_members'),
+    path('event_request', views.Event_request.as_view(), name='event_request'),
+    path('event!members', views.EventNotMember.as_view(), name='event!members'),
+    path('handle_eventmember', views.HandleEventmember.as_view(), name='handle_eventmember'),
+    path('trip', views.TripListView.as_view(), name='trip'),
+    path('tripupdate', views.TripUpdate.as_view(), name='tripupdate'),
+    path('tripmembers', views.TripMembers.as_view(), name='trip_members'),
+    path('trip_request', views.Trip_request.as_view(), name='trip_request'),
+    path('trip!members', views.TripNotMember.as_view(), name='trip!members'),
+    path('handletripmember', views.HandleTripmember.as_view(), name='handletripmember'),
+    path('medtime', views.MedTime.as_view(), name='medtime'),
+    path('search', views.Search.as_view(), name='search'),
+    path('searchfnd', views.Searchfnd.as_view(), name='searchfnd'),
+    path('deletegroup', views.DeleteGroup.as_view(), name='DeleteGroup'),
+    path('doverseer', views.OverseerDelete.as_view(), name='doverseer'),
+    path('addhandle', views.AddHandler.as_view(), name='addhandler'),
+    path('posts',views.PostUpdate.as_view(), name='posts'),
+    path('searchfndbox',views.SearchFndBox.as_view(), name='searchfndbox'),
+    path('addinfo',views.Addinfo.as_view(), name='addinfo'),
+    path('updategroup',views.UpdateGroup.as_view(), name='updategroup'),
+    path('findthana',views.FindThana.as_view(), name='findthana'),
+    path('finddistrict',views.FindDistrict.as_view(), name='finddistrict'),
+    ]
 
-]
+
 
 
 if settings.DEBUG:

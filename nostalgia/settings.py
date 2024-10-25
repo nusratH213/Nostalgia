@@ -28,11 +28,13 @@ DEBUG = True
 
 
 # Application definition
-
 INSTALLED_APPS = [
     "django.contrib.admin",
     "web",
     "api",
+    'channels',
+    'rest_framework_simplejwt.token_blacklist',
+    'rest_framework',
     'corsheaders',
     "django.contrib.auth",
     "django.contrib.contenttypes",
@@ -110,6 +112,7 @@ DATABASES = {
         'HOST': 'localhost',    # Or your MySQL host address
         'PORT': '3306',         # Or your MySQL port
     }
+
 }
 
 
@@ -131,7 +134,6 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/
 
@@ -151,8 +153,8 @@ LOGIN_URL = 'log_in'
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-fields
 AUTH_USER_MODEL = 'api.User'
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
-ALLOWED_HOSTS =  ['localhost', '127.0.0.1','http://localhost:3000','http://127.0.0.1:3000','10.0.2.2']  # Your React app's URL
-
+# ALLOWED_HOSTS =  ['10.10.202.81','localhost', '127.0.0.1','http://localhost:3000','http://127.0.0.1:3000','10.0.2.2','10.10.200.137']
+ALLOWED_HOSTS=['*']
 SESSION_COOKIE_AGE = 180000
 CORS_ORIGIN_ALLOW_ALL = True
 import os
@@ -162,7 +164,6 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static/'),
 ]
-
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
