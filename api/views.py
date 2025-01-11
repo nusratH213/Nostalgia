@@ -25,6 +25,113 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 import os
 from django.shortcuts import render
+import os
+from dotenv import load_dotenv
+load_dotenv()
+# Retrieve the variables
+private_key = int(os.getenv("ELGAMAL_PRIVATE_KEY"))
+prime = int(os.getenv("ELGAMAL_PRIME"))
+generator = int(os.getenv("ELGAMAL_GENERATOR"))
+public_key = int(os.getenv("ELGAMAL_PUBLIC_KEY"))
+print(f"Private Key: {private_key}")
+print(f"Prime: {prime}")
+print(f"Generator: {generator}")
+print(f"Public Key: {public_key}")
+
+from sympy import mod_inverse
+import random
+# ElGamal Encryption function
+def encrypt( message):
+    # Convert the message to an integer
+    m = int.from_bytes(message.encode(), 'big')
+    
+    # Choose a random k
+    k = random.randint(2, prime - 2)
+
+    # Compute c1 and c2
+    c1 = pow(generator, k, prime)
+    c2 = (m * pow(public_key, k, prime)) % prime
+
+    return c1, c2
+
+# ElGamal Decryption function
+def decrypt( c1, c2):
+    # Compute shared secret s = c1^x mod p
+    s = pow(c1, private_key, prime)
+
+    # Compute modular inverse of s
+    s_inv = mod_inverse(s, prime)
+
+    # Recover the message m = (c2 * s_inv) mod p
+    m = (c2 * s_inv) % prime
+
+    # Convert integer back to string
+    decrypted_message = m.to_bytes((m.bit_length() + 7) // 8, 'big').decode()
+
+    return decrypted_message
+
+
+import os
+import random
+from sympy import mod_inverse
+from base64 import b64encode, b64decode
+
+n = int(os.getenv("RSA_MODULUS"))  # Replace with actual modulus
+e = int(os.getenv("RSA_PUBLIC_EXPONENT"))  # Replace with actual public exponent
+d = int(os.getenv("RSA_PRIVATE_EXPONENT"))  # Replace with actual private exponent
+
+# RSA Encryption function
+def rsa_encrypt(message):
+    # Convert the message to bytes
+    message_bytes = message.encode('utf-8')
+
+    # Convert bytes to integer
+    m = int.from_bytes(message_bytes, 'big')
+
+    # Encrypt the integer: c = (m^e) % n
+    c = pow(m, e, n)
+
+    # Return the ciphertext
+    return c
+
+# RSA Decryption function
+def rsa_decrypt(ciphertext):
+    # Decrypt the integer: m = (c^d) % n
+    m = pow(ciphertext, d, n)
+
+    try:
+        # Convert the decrypted integer back to bytes
+        decrypted_bytes = m.to_bytes((m.bit_length() + 7) // 8, 'big')
+
+        # Decode the bytes to a UTF-8 string
+        decrypted_message = decrypted_bytes.decode('utf-8')
+
+        return decrypted_message
+
+    except (UnicodeDecodeError, OverflowError) as e:
+        # Handle decoding errors gracefully
+        return f"Decryption failed or invalid message. Error: {str(e)}"
+    
+# from Crypto.PublicKey import RSA
+
+# key = RSA.generate(2048)  # 2048-bit key for strong security
+
+# modulus = key.n
+# public_exponent = key.e
+# private_exponent = key.d
+
+# print(f"RSA_MODULUS={modulus}")
+# print(f"RSA_PUBLIC_EXPONENT={public_exponent}")
+# print(f"RSA_PRIVATE_EXPONENT={private_exponent}")
+
+message = "Dhaka bhai"
+print(f"Original Message: {message}")
+
+ciphertext = rsa_encrypt(message)
+print(f"Ciphertext: {ciphertext}")
+decrypted_message = rsa_decrypt(62988598665902304862682231301545692044243196069694635436698539502880821801282585670966415848975483592207027053701994594161815698450442133673105184982927105965313948684339673800337818428465007943372262185039550035514490807011996362434199968924017253175528278487823703086519516309097243870902058617286750964582295237418780850690185208844602443820852163673962739960165954165087971757326303237465346259843474675138344599290598506911330213352860031439681044065727158376284053213382657138525568405344231452049278684035660210746079660288331322914256641720130048217771847879548957739357321107607667052285935756095936018442086)
+print(f"Decrypted Message: {decrypted_message}")
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = (permissions.AllowAny,)
     
@@ -53,7 +160,7 @@ class O_update(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
     def patch(self, request, pk):
         try:
             # Retrieve the overseer object to be updated
@@ -67,8 +174,7 @@ class O_update(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+    
 @method_decorator(csrf_exempt, name='dispatch')
 class Owner_update(APIView):
     def put(self, request, username):
@@ -106,9 +212,20 @@ class sign(APIView):
     def post(self, request):
         #print(request.data)
         serializer = OwnerSerializer(data=request.data)
-        print("why didnt working?")
+        #print("why didnt working?")
         if serializer.is_valid():
-            serializer.save()
+            #encrypted_username = rsa_encrypt(request.data['username'])
+            encrypted_email = rsa_encrypt(request.data['email'])
+            #print(encrypted_username[0])
+            #print(encrypted_email[0])
+            #print(encrypted_username[1])
+           # print(encrypted_email[1])
+            user = serializer.save(
+                # username=encrypted_username[0], 
+                email=encrypted_email,
+            )
+            #serializer.save()
+            user.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else :
             print(serializer.errors)
@@ -822,7 +939,7 @@ class OTPAPI(APIView):
         # Extract the email address from the request data
         #print(request.data)
         username = request.data.get('input')
-
+        
         # Verify the email address using an email verification API (optional)
         # You can skip the verification API and directly send the email
         # is_email_valid = self.verify_email(email_address)
@@ -1011,7 +1128,7 @@ class CompareImagesView(APIView):
         image_base64_1 = base64.b64encode(image_file1.read()).decode('utf-8')
         # image_base64_1 = base64.b64encode(image_file2.read()).decode('utf-8')
         # Download and save the second image file
-        image_file2_url = "http://10.15.9.45:8000" + image_file2
+        image_file2_url = "http://192.168.0.107:8000" + image_file2
         print(image_file2_url)
         image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_2=""
@@ -1045,10 +1162,11 @@ class CompareImages(APIView):
             print("image1")
         if(image_file2 is not None):
             print(image_file2)
+            
         if not (image_file1 and image_file2):
             return JsonResponse({'error': 'Missing image data in request'}, status=400)
         
-        image_file1_url = "http://10.15.9.45:8000" + image_file2
+        image_file1_url = "http://192.168.0.107:8000" + image_file2
         print(image_file1_url)
         image_file1_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_1=""
@@ -1067,7 +1185,7 @@ class CompareImages(APIView):
             return JsonResponse({'error': 'Failed to download the Profile image file'}, status=500)
         # image_base64_1 = base64.b64encode(image_file2.read()).decode('utf-8')
         # Download and save the second image file
-        image_file2_url = "http://10.15.9.45:8000" + image_file2
+        image_file2_url = "http://192.168.0.107:8000" + image_file2
         print(image_file2_url)
         image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_2=""
@@ -1806,7 +1924,7 @@ class My_Group(APIView):
                 'created_date': group.CreatedDate,
                 'privacy': group.Privacy,
                 'topic': group.Topic,
-                'time': group.time,
+                'time': group.timegroup,
                 'img': group.img.url if group.img else "/media/image/download_lsX6bjA6.jpeg",
                 'member': 1 if GroupMember.objects.filter(G_username=group,member_id=user,accept=1).exists() else 0
 
@@ -2069,7 +2187,7 @@ class NIDImage(APIView):
     def post(self,request):
 
         def compare_nid(image1, image2):
-            url = 'http://10.15.9.45:8000/comparenid'
+            url = 'http://192.168.0.107:8000/comparenid'
             try:
                 response = requests.post(url, data={'image2': "/media/"+image1,'image1': image2})
                 response.raise_for_status()  # Raise an exception for HTTP errors
@@ -2215,7 +2333,7 @@ class NIDImage(APIView):
         mti=match(user.nid,id)
         if(mti>=9 and mtn>=(len(uname)-(len(uname)//6))):
                 print(str(user.p_image))
-                image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\1.png"
+                image_file2_path = r"D:\Django\Sad\Nostalgia\media\1.png"
                 with open(image_file2_path, "wb") as f:
                     for chunk in img.chunks():
                         f.write(chunk)
