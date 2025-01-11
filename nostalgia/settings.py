@@ -169,5 +169,5 @@ EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_USE_TLS = True
 EMAIL_PORT = 587
 #ensure less secure uses on gmail....
-EMAIL_HOST_USER = "" 
-EMAIL_HOST_PASSWORD = ""  
+EMAIL_HOST_USER = "mhossain212126@bscse.uiu.ac.bd" 
+EMAIL_HOST_PASSWORD = "Sabbir&2050"  

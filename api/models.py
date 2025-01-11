@@ -92,6 +92,9 @@ class Owner(User):
         self.password = make_password(self.password)
         super().save(*args, **kwargs)
 
+from django.db import models
+import uuid
+
 
 class Additional(models.Model):
     id = models.AutoField(primary_key=True)
@@ -113,6 +116,17 @@ class Overseer(User):
         # Update other common fields
         self.password = make_password(self.password)
         super().save(*args, **kwargs)
+class CustomToken(models.Model):
+        user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="custom_token")
+        token = models.UUIDField(default=uuid.uuid4, unique=True)
+        created_at = models.DateTimeField(auto_now_add=True)
+        expires_at = models.DateTimeField()  # Optional: Add expiration time if needed
+        def __str__(self):
+            return self.token
+        def is_valid(self):
+            from django.utils.timezone import now
+            return now() < self.expires_at  # Check if token is still valid
+
 class Verified(models.Model):
     verified = models.BooleanField(default=False)
     user=models.ForeignKey(Owner, on_delete=models.CASCADE,primary_key=True)
