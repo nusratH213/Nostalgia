@@ -131,14 +131,13 @@ class _sign(views.APIView):
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 from django.contrib.auth import authenticate, login
-
 class UserLogin(APIView):
 	permission_classes = (permissions.AllowAny,)
 	authentication_classes = (SessionAuthentication,)
 	def post(self, request):
 		data = request.data
-		assert validate_email(data)
-		assert validate_password(data)
+		# assert validate_email(data)
+		# assert validate_password(data)
 		serializer = UserLoginSerializer(data=data)
 		if serializer.is_valid(raise_exception=True):
 			user = serializer.check_user(data)
@@ -158,19 +157,8 @@ import uuid
 from .models import CustomToken
 
 def generate_token(user):
-    """
-    Generates or updates a token for the given user.
-
-    Args:
-        user: A valid instance of the User model or its subclass (Owner, Overseer).
-
-    Returns:
-        CustomToken: The generated or updated CustomToken instance.
-    """
-    # Set expiration time (24 hours from now)
     expires_at = now() + timedelta(hours=24)
 
-    # Update or create the token
     token, created = CustomToken.objects.update_or_create(
         user=user,
         defaults={"token": uuid.uuid4(), "expires_at": expires_at}
@@ -180,19 +168,11 @@ def generate_token(user):
 from django.http import JsonResponse
 
 def generate_token_response(user):
-    """
-    Generates a token for the given user and prepares a JSON response.
-
-    Args:
-        user: A valid instance of the User model or its subclass (Owner, Overseer).
-
-    Returns:
-        JsonResponse: A response containing the token.
-    """
+  
     token = generate_token(user)
     return JsonResponse({
-        "token": str(token.token),  # Serialize the UUID as a string
-        "expires_at": token.expires_at.isoformat(),  # Include expiration time if needed
+        "token": str(token.token),  
+        "expires_at": token.expires_at.isoformat(),
     })
 
 def validate_token(token):
@@ -208,7 +188,6 @@ class login_api(views.APIView):
     def generate_verification_code(self):
         return ''.join(random.choices(string.ascii_letters + string.digits, k=4))
     def send_verification_email(self, email_address, verification_code):
-        # Send verification email using Django's email functionality
         subject = 'Email Verification Code from Nostalgia'
         message = f'Your verification code is: {verification_code}'
         from_email = settings.EMAIL_HOST_USER
@@ -238,16 +217,17 @@ class login_api(views.APIView):
                 serializer = OverseerSerializer(Overseer.objects.get(username=username))
                 username_part = username.split("@")[1]
                 owner = Owner.objects.filter(username=username_part).first()
+                ov=Overseer.objects.filter(username=username)
                 if owner:
                     serializer.data['pp'] = owner.p_image.url
                 else:
                     serializer.data['pp'] = "media/image/download_lX6bjA6.jpeg"
                 otp=self.generate_verification_code()
-                self.send_verification_email(user[0].email, otp)
-                token=generate_token(user[0])
+                print(otp)
+                self.send_verification_email(ov[0].email, otp)
+                token=generate_token(ov[0])
                 return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token':str(token.token)}, status=status.HTTP_200_OK)
     
-        
         return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -259,9 +239,7 @@ class show(views.APIView):
         if(request.user.is_authenticated):
             return Response({'authenticated boSS!': True}, status=status.HTTP_200_OK)
         return Response({'authenticated': False}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-
+                  
 def friends(request):
     user = Owner.objects.get(username="nuha1")
     queryset = Friend.objects.filter(user1=user.id) | Friend.objects.filter(user2=user.id)
@@ -272,8 +250,6 @@ def friends(request):
     return queryset
 
     return HttpResponse("Hello, this is the friends page!")
-
-
 class MyAPIView(views.APIView):
     def get(self, request):
         # Extract query parameters from the request
@@ -2820,18 +2796,22 @@ class MedTime(APIView):
         time=MedAlert.objects.create(userid=user,night=data['night'],morning=data['morning'],noon=data['noon'],interval=data['gap'])
         time.save()
         return Response({"message": "Time created successfully"}, status=status.HTTP_201_CREATED)
+from django.utils.html import escape
 
 class Search(APIView):
     def get(self,reqeust):
         search=reqeust.GET.get('search')
         # search=self.cleaned_data(search)
         username=reqeust.GET.get('username')
+        username = escape(username)
+        search = escape(search)
+
         for i in search:
             if i not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
-                return Response({"message": "Invalid search query"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response([])
         for i in username:
             if i not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
-                return Response({"message": "Invalid username"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response([])
         # usrername=self.cleaned_data(username)
         # if not search.isalnum():
         #     return Response({"message": "Invalid search query"}, status=status.HTTP_400_BAD_REQUEST)
