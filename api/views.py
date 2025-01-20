@@ -24,8 +24,90 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import os
+# key = RSA.generate(2048)  # 2048-bit key for strong security
+
+# modulus = key.n
+# public_exponent = key.e
+# private_exponent = key.d
+
+# print(f"RSA_MODULUS={modulus}")
+# print(f"RSA_PUBLIC_EXPONENT={public_exponent}")
+# print(f"RSA_PRIVATE_EXPONENT={private_exponent}")
+
 
 from django.shortcuts import render
+import os
+from dotenv import load_dotenv
+load_dotenv()
+private_key = int(os.getenv("ELGAMAL_PRIVATE_KEY"))
+prime = int(os.getenv("ELGAMAL_PRIME"))
+generator = int(os.getenv("ELGAMAL_GENERATOR"))
+public_key = int(os.getenv("ELGAMAL_PUBLIC_KEY"))
+# print(f"Private Key: {private_key}")
+# print(f"Prime: {prime}")
+# print(f"Generator: {generator}")
+# print(f"Public Key: {public_key}")
+
+from sympy import mod_inverse
+import random
+def encrypt( message):
+    m = int.from_bytes(message.encode(), 'big')
+    
+    k = random.randint(2, prime - 2)
+
+    c1 = pow(generator, k, prime)
+    c2 = (m * pow(public_key, k, prime)) % prime
+
+    return c1, c2
+
+def decrypt( c1, c2):
+    s = pow(c1, private_key, prime)
+
+    s_inv = mod_inverse(s, prime)
+
+    m = (c2 * s_inv) % prime
+
+    decrypted_message = m.to_bytes((m.bit_length() + 7) // 8, 'big').decode()
+
+    return decrypted_message
+
+
+import os
+import random
+from sympy import mod_inverse
+from base64 import b64encode, b64decode
+
+n = int(os.getenv("RSA_MODULUS"))
+e = int(os.getenv("RSA_PUBLIC_EXPONENT"))  
+d = int(os.getenv("RSA_PRIVATE_EXPONENT")) 
+
+def rsa_encrypt(message):
+    message_bytes = message.encode('utf-8')
+
+    m = int.from_bytes(message_bytes, 'big')
+    c = pow(m, e, n)
+    return c
+
+def rsa_decrypt(ciphertext):
+    m = pow(ciphertext, d, n)
+    try:
+        decrypted_bytes = m.to_bytes((m.bit_length() + 7) // 8, 'big')
+
+        decrypted_message = decrypted_bytes.decode('utf-8')
+
+        return decrypted_message
+
+    except (UnicodeDecodeError, OverflowError) as e:
+        return f"Decryption failed or invalid message. Error: {str(e)}"
+    
+message = "Dhaka bhai"
+print(f"Original Message: {message}")
+
+ciphertext = rsa_encrypt(message)
+print(f"Ciphertext: {ciphertext}")
+decrypted_message = rsa_decrypt(ciphertext)
+print(f"Decrypted Message: {decrypted_message}")
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = (permissions.AllowAny,)
     
@@ -54,7 +136,7 @@ class O_update(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
     def patch(self, request, pk):
         try:
             # Retrieve the overseer object to be updated
@@ -68,8 +150,7 @@ class O_update(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+    
 @method_decorator(csrf_exempt, name='dispatch')
 class Owner_update(APIView):
     def put(self, request, username):
@@ -107,9 +188,20 @@ class sign(APIView):
     def post(self, request):
         #print(request.data)
         serializer = OwnerSerializer(data=request.data)
-        print("why didnt working?")
+        #print("why didnt working?")
         if serializer.is_valid():
-            serializer.save()
+            #encrypted_username = rsa_encrypt(request.data['username'])
+            encrypted_email = rsa_encrypt(request.data['email'])
+            #print(encrypted_username[0])
+            #print(encrypted_email[0])
+            #print(encrypted_username[1])
+           # print(encrypted_email[1])
+            user = serializer.save(
+                # username=encrypted_username[0], 
+                email=encrypted_email,
+            )
+            #serializer.save()
+            user.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else :
             print(serializer.errors)
@@ -174,7 +266,6 @@ def generate_token_response(user):
         "token": str(token.token),  
         "expires_at": token.expires_at.isoformat(),
     })
-
 def validate_token(token):
     try:
         token_obj = CustomToken.objects.get(token=token)
@@ -183,7 +274,6 @@ def validate_token(token):
     except CustomToken.DoesNotExist:
         return None
     return None
-
 class login_api(views.APIView):
     def generate_verification_code(self):
         return ''.join(random.choices(string.ascii_letters + string.digits, k=4))
@@ -448,7 +538,9 @@ class FriendList(APIView):
 class FindFriend(APIView):
     def get(self, request):
         userid=request.GET.get('user_id')
-       # users = Owner.objects.exclude(id=userid)
+        if len(str(userid)) > 3:
+            userid = Owner.objects.get(username=userid)
+            userid = userid.id
         users = Owner.objects.all()
         # Serialize the data
         serialized_data = []
@@ -1060,9 +1152,9 @@ class CompareImagesView(APIView):
         image_base64_1 = base64.b64encode(image_file1.read()).decode('utf-8')
         # image_base64_1 = base64.b64encode(image_file2.read()).decode('utf-8')
         # Download and save the second image file
-        image_file2_url = "http://localhost:8000" + image_file2
+        image_file2_url = "http://192.168.0.107:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_2=""
         response = requests.get(image_file2_url)
         if response.status_code == 200:
@@ -1094,12 +1186,13 @@ class CompareImages(APIView):
             print("image1")
         if(image_file2 is not None):
             print(image_file2)
+            
         if not (image_file1 and image_file2):
             return JsonResponse({'error': 'Missing image data in request'}, status=400)
         
-        image_file1_url = "http://localhost:8000" + image_file2
+        image_file1_url = "http://192.168.0.107:8000" + image_file2
         print(image_file1_url)
-        image_file1_path = r"D:\DEV\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file1_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_1=""
         response = requests.get(image_file1_url)
         if response.status_code == 200:
@@ -1116,9 +1209,9 @@ class CompareImages(APIView):
             return JsonResponse({'error': 'Failed to download the Profile image file'}, status=500)
         # image_base64_1 = base64.b64encode(image_file2.read()).decode('utf-8')
         # Download and save the second image file
-        image_file2_url = "http://localhost:8000" + image_file2
+        image_file2_url = "http://192.168.0.107:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
         image_base64_2=""
         response = requests.get(image_file2_url)
         if response.status_code == 200:
@@ -1611,9 +1704,9 @@ class HTimeline(APIView):
             user_content.append(blog.content)
         for comment in user_comments:
             user_content.append(comment.comment)
+
         # Get all blogs excluding the user's blogs
         all_blogs = Blog.objects.exclude(author__username=username)
-        # Combine the content of all blogs and comments
         all_content = []
         for blog in all_blogs:
             all_content.append(blog.content)
@@ -1644,7 +1737,7 @@ class HTimeline(APIView):
                 if isinstance(post, Blog):
                     combined_text += post.content + ' '
                 elif isinstance(post, Comment):
-                    combined_text += post.comment + ' '  # Adjust this according to your Comment model
+                    combined_text += post.comment + ' '
                 elif isinstance(post, GroupPost):
                     combined_text += post.GPost_contents + ' '
             return combined_text
@@ -1689,8 +1782,9 @@ class HTimeline(APIView):
         # Sort posts based on similarity scores
         sorted_posts = sorted(similarities, key=lambda x: x[1], reverse=True)
         sorted_posts = [post for post, similarity in sorted_posts]
-        userbox=Friend.objects.filter()
+        userbox = Friend.objects.filter()
         blogs_data = []
+
         # Retrieve the IDs of the user's friends where user1 is the given user
         friend_ids = Friend.objects.filter(user1=user, is_fnf=1).values_list('user2_id', flat=True)
         # Retrieve the IDs of the user's friends where user2 is the given user
@@ -1702,8 +1796,7 @@ class HTimeline(APIView):
         friend_ids.append(user.id)
         # Combine the friend IDs
         friend_ids.extend(friend_ids2)
-        ninety_days_ago = datetime.now().date() - timedelta(days=90)
-        date= datetime.now().date()
+
         for post in sorted_posts:
             blog = Blog.objects.filter(blogid=post.blogid)
             if blog.exists():
@@ -1717,8 +1810,7 @@ class HTimeline(APIView):
                     'author': blog.author.username,
                     'author_img': blog.author.p_image.url if blog.author.p_image else "/media/image/download_lsX6bjA6.jpeg",
                     'content': blog.content,
-                    'post_date': blog.post_date,
-                    'post_time': blog.post_time,
+                    'post_date': blog.post_date,  # Keep post_date, remove post_time
                     'blog_img': blog.blog_img.url if blog.blog_img else None,
                     'upvote': blog.upvote_set.count(),
                     'is_upvoted': 1 if blog.upvote_set.filter(Username__username=username).exists() else 0
@@ -1862,7 +1954,7 @@ class My_Group(APIView):
                 'created_date': group.CreatedDate,
                 'privacy': group.Privacy,
                 'topic': group.Topic,
-                'time': group.time,
+                'time': group.timegroup,
                 'img': group.img.url if group.img else "/media/image/download_lsX6bjA6.jpeg",
                 'member': 1 if GroupMember.objects.filter(G_username=group,member_id=user,accept=1).exists() else 0
 
@@ -2135,7 +2227,6 @@ class NIDImage(APIView):
             except requests.exceptions.RequestException as e:
                 print('Error uploading images:', e)
             return 0
-
         def match(str1, str2):
             m = len(str1)
             n = len(str2)
@@ -2290,6 +2381,7 @@ class NIDImage(APIView):
                         v.save()
                     return Response({"msg": "Nid Verified successfully"},status=status.HTTP_201_CREATED)
         return Response({"message": "NID Not Matched"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class NIDText(APIView):
     def post(self,request):
@@ -2698,6 +2790,8 @@ class MedicationBox(APIView):
     def get(self, request):
         user=request.GET.get('username')
         print(user)
+        if "@" in user: 
+            user = user.split("@")[1]
         user=Owner.objects.get(username=user)
         medications=Medication.objects.filter(user=user)
         medications_data=[]
@@ -2731,7 +2825,10 @@ class MedicationBox(APIView):
         print("ye kiya hogaye")
         img = request.FILES.get('img')
         print(img)
-        user=Owner.objects.get(username=data['user'])
+        user=data['user']
+        if "@" in user: 
+            user = user.split("@")[1]
+        user=Owner.objects.get(username=user)
         med=Medication.objects.create(user=user,img=img,med_name=data['name'],note=data['note'],dose=data['dosage'],morning= data['morning'],noon= data['noon'],night=data['night'],after=data['after'],meds_start_date=data['start_date'],meds_end_date=data['end_date'])
         med.save()
         return Response({"message": "Medication created successfully"}, status=status.HTTP_201_CREATED)
@@ -2761,6 +2858,8 @@ class Done(APIView):
     def get(self,request):
         user=request.GET.get('username')
         print(user)
+        if "@" in user: 
+            user = user.split("@")[1]
         user=Owner.objects.get(username=user)
         date=request.GET.get('date')
         time=request.GET.get('time')

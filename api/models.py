@@ -39,7 +39,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         related_name='custom_user_permissions'  # Change this to a unique related_name
     )
     # Your
-    email = models.EmailField(unique=True)
+    email = models.TextField(unique=True)
     username = models.CharField(max_length=100, unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
