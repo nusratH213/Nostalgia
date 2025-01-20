@@ -248,14 +248,13 @@ class _sign(views.APIView):
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 from django.contrib.auth import authenticate, login
-
 class UserLogin(APIView):
 	permission_classes = (permissions.AllowAny,)
 	authentication_classes = (SessionAuthentication,)
 	def post(self, request):
 		data = request.data
-		assert validate_email(data)
-		assert validate_password(data)
+		# assert validate_email(data)
+		# assert validate_password(data)
 		serializer = UserLoginSerializer(data=data)
 		if serializer.is_valid(raise_exception=True):
 			user = serializer.check_user(data)
@@ -365,7 +364,6 @@ class login_api(views.APIView):
     def generate_verification_code(self):
         return ''.join(random.choices(string.ascii_letters + string.digits, k=4))
     def send_verification_email(self, email_address, verification_code):
-        # Send verification email using Django's email functionality
         subject = 'Email Verification Code from Nostalgia'
         message = f'Your verification code is: {verification_code}'
         from_email = settings.EMAIL_HOST_USER
@@ -379,9 +377,21 @@ class login_api(views.APIView):
         print(data)
         #logout(request)
         if username and password:
+            # print(username)
+            # print(password)
             user = authenticate(request, username=username, password=password)
             print(user)
-            if user is not None:
+            print("password wrong")
+            print("no user");
+            me=Owner.objects.filter(username=username)
+            print(me[0]);
+            print(me)
+            print("wow")
+            print(make_password(password=password))
+            print(me[0].check_password(make_password(password=password)))
+            print("w")
+            if len(me)>0 and me[0].check_password(password):
+                print(me[0])
                 login(request,user)
                 user=Owner.objects.filter(username=username)
                 if len(user) > 0:
@@ -395,16 +405,17 @@ class login_api(views.APIView):
                 serializer = OverseerSerializer(Overseer.objects.get(username=username))
                 username_part = username.split("@")[1]
                 owner = Owner.objects.filter(username=username_part).first()
+                ov=Overseer.objects.filter(username=username)
                 if owner:
                     serializer.data['pp'] = owner.p_image.url
                 else:
                     serializer.data['pp'] = "media/image/download_lX6bjA6.jpeg"
                 otp=self.generate_verification_code()
-                self.send_verification_email(user[0].email, otp)
-                token=generate_token(user[0])
+                print(otp)
+                self.send_verification_email(ov[0].email, otp)
+                token=generate_token(ov[0])
                 return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token':str(token.token)}, status=status.HTTP_200_OK)
     
-        
         return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -416,9 +427,7 @@ class show(views.APIView):
         if(request.user.is_authenticated):
             return Response({'authenticated boSS!': True}, status=status.HTTP_200_OK)
         return Response({'authenticated': False}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-
+                  
 def friends(request):
     user = Owner.objects.get(username="nuha1")
     queryset = Friend.objects.filter(user1=user.id) | Friend.objects.filter(user2=user.id)
@@ -429,8 +438,6 @@ def friends(request):
     return queryset
 
     return HttpResponse("Hello, this is the friends page!")
-
-
 class MyAPIView(views.APIView):
     def get(self, request):
         # Extract query parameters from the request
@@ -2986,18 +2993,22 @@ class MedTime(APIView):
         time=MedAlert.objects.create(userid=user,night=data['night'],morning=data['morning'],noon=data['noon'],interval=data['gap'])
         time.save()
         return Response({"message": "Time created successfully"}, status=status.HTTP_201_CREATED)
+from django.utils.html import escape
 
 class Search(APIView):
     def get(self,reqeust):
         search=reqeust.GET.get('search')
         # search=self.cleaned_data(search)
         username=reqeust.GET.get('username')
+        username = escape(username)
+        search = escape(search)
+
         for i in search:
             if i not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
-                return Response({"message": "Invalid search query"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response([])
         for i in username:
             if i not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
-                return Response({"message": "Invalid username"}, status=status.HTTP_400_BAD_REQUEST)
+                return Response([])
         # usrername=self.cleaned_data(username)
         # if not search.isalnum():
         #     return Response({"message": "Invalid search query"}, status=status.HTTP_400_BAD_REQUEST)

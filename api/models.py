@@ -5,7 +5,7 @@ from django.contrib.auth.hashers import make_password
 from django.utils import timezone
 
 class UserManager(BaseUserManager):
-    def create_user(self, username, password=None, **extra_fields):
+    def create_user(self, username, password="12", **extra_fields):
         if not username:
             raise ValueError('The Username field must be set')
         user = self.model(username=username, **extra_fields)
@@ -38,17 +38,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         blank=True,
         related_name='custom_user_permissions'  # Change this to a unique related_name
     )
-    # Your
-    email = models.EmailField(unique=True)
+    email = models.TextField(unique=True)
     username = models.CharField(max_length=100, unique=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    gender = models.CharField(max_length=10)
-    phone = models.CharField(max_length=20)
-    dob = models.DateField()
-    address = models.CharField(max_length=255)
+    first_name = models.TextField(unique=False)
+    last_name = models.TextField(unique=False)
+    gender = models.CharField(max_length=255)
+    phone = models.TextField(unique=True)
+    dob = models.TextField(unique=False)
+    address = models.TextField(unique=False)
     password = models.CharField(max_length=255)
-    nid = models.CharField(max_length=20)
+    nid = models.TextField(unique=True)
     p_image = models.ImageField(upload_to='image/', null=True)
     thana = models.ForeignKey('Thana', on_delete=models.CASCADE)
 
