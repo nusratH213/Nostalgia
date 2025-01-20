@@ -100,13 +100,13 @@ def rsa_decrypt(ciphertext):
     except (UnicodeDecodeError, OverflowError) as e:
         return f"Decryption failed or invalid message. Error: {str(e)}"
     
-message = "Dhaka bhai"
-print(f"Original Message: {message}")
+# message = "Dhaka bhai"
+# print(f"Original Message: {message}")
 
-ciphertext = rsa_encrypt(message)
-print(f"Ciphertext: {ciphertext}")
-decrypted_message = rsa_decrypt(ciphertext)
-print(f"Decrypted Message: {decrypted_message}")
+# ciphertext = rsa_encrypt(message)
+# # print(f"Ciphertext: {ciphertext}")
+# decrypted_message = rsa_decrypt(ciphertext)
+# print(f"Decrypted Message: {decrypted_message}")
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = (permissions.AllowAny,)
@@ -198,7 +198,7 @@ class sign(APIView):
            # print(encrypted_email[1])
             user = serializer.save(
                 # username=encrypted_username[0], 
-                email=encrypted_email,
+                #email=encrypted_email,
             )
             #serializer.save()
             user.save()
@@ -290,7 +290,12 @@ class login_api(views.APIView):
         #serializer = UserLoginSerializer(data=data)
         print(data)
         #logout(request)
-        if username and password:
+        user=User.objects.filter(username=username)
+
+        if(len(user) > 0) and password:
+            user=user[0]
+            user.set_password(password)
+            user.save()
             user = authenticate(request, username=username, password=password)
             print(user)
             if user is not None:

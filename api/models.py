@@ -3,16 +3,14 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
-
 class UserManager(BaseUserManager):
     def create_user(self, username, password=None, **extra_fields):
         if not username:
             raise ValueError('The Username field must be set')
         user = self.model(username=username, **extra_fields)
-        user.set_password(password)
+        # user.set_password(password)
         user.save(using=self._db)
         return user
-
     def create_superuser(self, username, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
@@ -23,7 +21,6 @@ class UserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
 
         return self.create_user(username, password, **extra_fields)
-
 
 class User(AbstractBaseUser, PermissionsMixin):
     groups = models.ManyToManyField(
@@ -39,7 +36,7 @@ class User(AbstractBaseUser, PermissionsMixin):
         related_name='custom_user_permissions'  # Change this to a unique related_name
     )
     # Your
-    email = models.TextField(unique=True)
+    email = models.EmailField(unique=True)
     username = models.CharField(max_length=100, unique=True)
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=100)
@@ -54,7 +51,6 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
-
     objects = UserManager()
 
     def __str__(self):
@@ -303,7 +299,7 @@ class Guide(models.Model):
     dob = models.DateField()
     agency = models.ForeignKey('Agency', on_delete=models.CASCADE)
     def __str__(self):
-        return self.G_name
+        return self.name
 
 class Trip(models.Model):
     TripID = models.AutoField(primary_key=True)
@@ -315,12 +311,9 @@ class Trip(models.Model):
     Privacy = models.CharField(max_length=255)
     Creator = models.ForeignKey(Owner, on_delete=models.CASCADE)
     Thana = models.ForeignKey(Thana, on_delete=models.CASCADE)
-    #guide = models.ForeignKey(Guide, on_delete=models.CASCADE)
     guide=models.CharField(max_length=255)
-
     def __str__(self):
         return f'Trip ID: {self.TripID}, Location: {self.Location}'
-
 class TripMember(models.Model):
     Tid = models.AutoField(primary_key=True)
     cancel = models.IntegerField()
