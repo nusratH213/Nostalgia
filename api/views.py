@@ -24,6 +24,7 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import os
+
 from django.shortcuts import render
 import os
 from dotenv import load_dotenv
@@ -261,9 +262,115 @@ class UserLogin(APIView):
 			login(request, user)
 			return Response(serializer.data, status=status.HTTP_200_OK)
         
+# from django.contrib.auth import logout
+# from django.core.mail import send_mail
+# from datetime import timedelta
+# from django.utils.timezone import now
+# from .models import CustomToken
+# import uuid
+
+# from django.utils.timezone import now
+# from datetime import timedelta
+# import uuid
+# from .models import CustomToken
+
+# def generate_token(user):
+#     """
+#     Generates or updates a token for the given user.
+
+#     Args:
+#         user: A valid instance of the User model or its subclass (Owner, Overseer).
+
+#     Returns:
+#         CustomToken: The generated or updated CustomToken instance.
+#     """
+#     # Set expiration time (24 hours from now)
+#     expires_at = now() + timedelta(hours=24)
+
+#     # Update or create the token
+#     token, created = CustomToken.objects.update_or_create(
+#         user=user,
+#         defaults={"token": uuid.uuid4(), "expires_at": expires_at}
+#     )
+#     return token
+
+# from django.http import JsonResponse
+
+# def generate_token_response(user):
+#     """
+#     Generates a token for the given user and prepares a JSON response.
+
+#     Args:
+#         user: A valid instance of the User model or its subclass (Owner, Overseer).
+
+#     Returns:
+#         JsonResponse: A response containing the token.
+#     """
+#     token = generate_token(user)
+#     return JsonResponse({
+#         "token": str(token.token),  # Serialize the UUID as a string
+#         "expires_at": token.expires_at.isoformat(),  # Include expiration time if needed
+#     })
+
+# def validate_token(token):
+#     try:
+#         token_obj = CustomToken.objects.get(token=token)
+#         if token_obj.is_valid():
+#             return token_obj.user
+#     except CustomToken.DoesNotExist:
+#         return None
+#     return None
 from django.contrib.auth import logout
+from django.core.mail import send_mail
+from datetime import timedelta
+from django.utils.timezone import now
+from .models import CustomToken
+import uuid
+
+from django.utils.timezone import now
+from datetime import timedelta
+import uuid
+from .models import CustomToken
+
+def generate_token(user):
+    expires_at = now() + timedelta(hours=24)
+
+    token, created = CustomToken.objects.update_or_create(
+        user=user,
+        defaults={"token": uuid.uuid4(), "expires_at": expires_at}
+    )
+    return token
+
+from django.http import JsonResponse
+
+def generate_token_response(user):
+  
+    token = generate_token(user)
+    return JsonResponse({
+        "token": str(token.token),  
+        "expires_at": token.expires_at.isoformat(),
+    })
+
+def validate_token(token):
+    try:
+        token_obj = CustomToken.objects.get(token=token)
+        if token_obj.is_valid():
+            return token_obj.user
+    except CustomToken.DoesNotExist:
+        return None
+    return None
+
 
 class login_api(views.APIView):
+    def generate_verification_code(self):
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+    def send_verification_email(self, email_address, verification_code):
+        # Send verification email using Django's email functionality
+        subject = 'Email Verification Code from Nostalgia'
+        message = f'Your verification code is: {verification_code}'
+        from_email = settings.EMAIL_HOST_USER
+        recipient_list = [email_address]
+        send_mail(subject, message, from_email, recipient_list)
     def post(self, request):
         data = request.data
         username = data.get('username')
@@ -279,7 +386,12 @@ class login_api(views.APIView):
                 user=Owner.objects.filter(username=username)
                 if len(user) > 0:
                     serializer = OwnerSerializer(user[0])
-                    return Response({'auth': True,'user':serializer.data}, status=status.HTTP_200_OK)
+                    otp=self.generate_verification_code()
+                    self.send_verification_email(user[0].email, otp)
+                    print("token")
+                    print(otp)
+                    token = generate_token(user[0])
+                    return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token': str(token.token)}, status=status.HTTP_200_OK)
                 serializer = OverseerSerializer(Overseer.objects.get(username=username))
                 username_part = username.split("@")[1]
                 owner = Owner.objects.filter(username=username_part).first()
@@ -287,8 +399,11 @@ class login_api(views.APIView):
                     serializer.data['pp'] = owner.p_image.url
                 else:
                     serializer.data['pp'] = "media/image/download_lX6bjA6.jpeg"
-
-                return JsonResponse({'auth': True,'user':serializer.data}, status=status.HTTP_200_OK)
+                otp=self.generate_verification_code()
+                self.send_verification_email(user[0].email, otp)
+                token=generate_token(user[0])
+                return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token':str(token.token)}, status=status.HTTP_200_OK)
+    
         
         return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
 
@@ -1371,6 +1486,10 @@ class BlogSingleView(APIView):
 class BlogCreateView(CreateAPIView):
     #serializer_class = BlogSerializer
     def post(self, request, *args, **kwargs):
+        token=request.data['token']
+        print(token)
+        if not validate_token(token):
+            return JsonResponse({'error': 'Invalid token'}, status=400)
         # Retrieve data from the request
         username = request.data['username']
         data = request.data
@@ -1775,6 +1894,8 @@ class HTimeline(APIView):
                 blog = blog[0]
                 if blog.author.id not in friend_ids and blog.author.username != username:
                     continue
+                # if blog.post_date + timedelta(days=90) < date:
+                #     continue
                 blog_data = {
                     'id': blog.blogid,
                     'author': blog.author.username,
@@ -2869,7 +2990,19 @@ class MedTime(APIView):
 class Search(APIView):
     def get(self,reqeust):
         search=reqeust.GET.get('search')
+        # search=self.cleaned_data(search)
         username=reqeust.GET.get('username')
+        for i in search:
+            if i not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
+                return Response({"message": "Invalid search query"}, status=status.HTTP_400_BAD_REQUEST)
+        for i in username:
+            if i not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
+                return Response({"message": "Invalid username"}, status=status.HTTP_400_BAD_REQUEST)
+        # usrername=self.cleaned_data(username)
+        # if not search.isalnum():
+        #     return Response({"message": "Invalid search query"}, status=status.HTTP_400_BAD_REQUEST)
+        # if not username.isalnum():
+        #     return Response({"message": "Invalid username"}, status=status.HTTP_400_BAD_REQUEST)
         blog=Blog.objects.filter(content__icontains=search)
         blog_data=[]
         if search==" ":
