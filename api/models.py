@@ -36,16 +36,16 @@ class User(AbstractBaseUser, PermissionsMixin):
         related_name='custom_user_permissions'  # Change this to a unique related_name
     )
     # Your
-    email = models.EmailField(unique=True)
+    email = models.TextField(unique=True)
     username = models.CharField(max_length=100, unique=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    gender = models.CharField(max_length=10)
-    phone = models.CharField(max_length=20)
+    first_name = models.TextField()
+    last_name = models.TextField()
+    gender = models.TextField()
+    phone = models.TextField(unique=True)
     dob = models.DateField()
-    address = models.CharField(max_length=255)
+    address = models.TextField()
     password = models.CharField(max_length=255)
-    nid = models.CharField(max_length=20)
+    nid = models.TextField(unique=True)
     p_image = models.ImageField(upload_to='image/', null=True)
     thana = models.ForeignKey('Thana', on_delete=models.CASCADE)
 

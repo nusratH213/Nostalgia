@@ -89,7 +89,7 @@ def rsa_encrypt(message):
     return c
 
 def rsa_decrypt(ciphertext):
-    m = pow(ciphertext, d, n)
+    m = pow(int(ciphertext), d, n)
     try:
         decrypted_bytes = m.to_bytes((m.bit_length() + 7) // 8, 'big')
 
@@ -192,13 +192,18 @@ class sign(APIView):
         if serializer.is_valid():
             #encrypted_username = rsa_encrypt(request.data['username'])
             encrypted_email = rsa_encrypt(request.data['email'])
+            # first_name = rsa_encrypt(request.data['first_name'])
+            # last_name = rsa_encrypt(request.data['last_name'])
+            nid=rsa_encrypt(request.data['nid'])
             #print(encrypted_username[0])
             #print(encrypted_email[0])
             #print(encrypted_username[1])
            # print(encrypted_email[1])
             user = serializer.save(
-                # username=encrypted_username[0], 
-                #email=encrypted_email,
+                email=encrypted_email,
+                # first_name=first_name,
+                # last_name=last_name,
+                nid=nid
             )
             #serializer.save()
             user.save()
@@ -304,11 +309,42 @@ class login_api(views.APIView):
                 if len(user) > 0:
                     serializer = OwnerSerializer(user[0])
                     otp=self.generate_verification_code()
-                    self.send_verification_email(user[0].email, otp)
+                    self.send_verification_email(rsa_decrypt(user[0].email), otp)
                     print("token")
                     print(otp)
-                    token = generate_token(user[0])
-                    return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token': str(token.token)}, status=status.HTTP_200_OK)
+                    token=generate_token(user[0])
+                    dot = {}
+                    # Decrypting and populating 'dot'
+                    for d in serializer.data:
+                        dat = serializer.data[d]
+                        if not isinstance(dat, str):
+                            dot[d] = dat
+                            continue
+                        #print(dat)
+                        try:
+                            dat = rsa_decrypt(dat)
+                            dot[d] = dat
+                            print(dat)
+                        except Exception as e:
+                            dot[d] = dat
+                            print(f"Decryption failed for {d}: {e}")
+                            pass
+
+                    new_serializer = serializer.__class__(data=dot)
+                    if new_serializer.is_valid():
+                        print(new_serializer.data)
+                    return JsonResponse(
+                        {
+                            'auth': True,
+                            'user': new_serializer.data,  # Use the new serializer's validated data
+                            'otp': otp,
+                            'token': str(token.token),
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                    #return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
+
+
                 serializer = OverseerSerializer(Overseer.objects.get(username=username))
                 username_part = username.split("@")[1]
                 owner = Owner.objects.filter(username=username_part).first()
@@ -321,6 +357,8 @@ class login_api(views.APIView):
                 print(otp)
                 self.send_verification_email(ov[0].email, otp)
                 token=generate_token(ov[0])
+                print(serializer.data)
+                    
                 return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token':str(token.token)}, status=status.HTTP_200_OK)
     
         return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
@@ -924,15 +962,15 @@ class Profile(APIView):
             user={
                 'id': user.id,
                 'pp': user.p_image.url if user.p_image else "media\image\download_lX6bjA6.jpeg",
-                'first_name': user.first_name,
+                'first_name': (user.first_name),
                 'username': user.username,
-                'last_name': user.last_name,
-                'email': user.email,
-                'gender': user.gender,
+                'last_name': (user.last_name),
+                'email': rsa_decrypt(user.email),
+                'gender': (user.gender),
                 'phone': user.phone,
                 'dob': user.dob,
-                'address': user.address,
-                'nid': user.nid,
+                'address': (user.address),
+                'nid': rsa_decrypt(user.nid),
                 'thana': Thana.objects.get(thana=user.thana_id).thana,
                 'is_fnf': 1 if Friend.objects.filter(user1=user, user2=user2,is_fnf=1).exists() else 1 if Friend.objects.filter(user2=user, user1=user2,is_fnf=1).exists() else 0,
                 'type': Friend.objects.filter(user1=user, user2=user2).values_list('type', flat=True).first() if Friend.objects.filter(user1=user, user2=user2).exists() else Friend.objects.filter(user2=user, user1=user2).values_list('type', flat=True).first() if Friend.objects.filter(user2=user, user1=user2).exists() else None,
