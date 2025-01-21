@@ -282,6 +282,7 @@ def validate_token(token):
     except CustomToken.DoesNotExist:
         return None
     return None
+from .models import TokenList
 class login_api(views.APIView):
     def generate_verification_code(self):
         return ''.join(random.choices(string.ascii_letters + string.digits, k=4))
@@ -291,10 +292,18 @@ class login_api(views.APIView):
         from_email = settings.EMAIL_HOST_USER
         recipient_list = [email_address]
         send_mail(subject, message, from_email, recipient_list)
+    def send_mail(self, email_address):
+        subject = 'Email from Nostalgia'
+        message = f'You Account Logged in New Device.'
+        from_email = settings.EMAIL_HOST_USER
+        recipient_list = [email_address]
+        send_mail(subject, message, from_email, recipient_list)
     def post(self, request):
         data = request.data
         username = data.get('username')
         password = data.get('password')
+        tt = data.get('tt')
+        print(tt)
         #serializer = UserLoginSerializer(data=data)
         print(data)
         #logout(request)
@@ -309,6 +318,21 @@ class login_api(views.APIView):
             if user is not None:
                 login(request,user)
                 user=Owner.objects.filter(username=username)
+                listoftt=TokenList.objects.filter(token=tt)
+                if(len(listoftt)>0):
+                    ft=listoftt[0].user
+                # print(ft)
+                # print(User.objects.get(username=username))
+                if(tt is None or len(listoftt)<=0 or ft!=User.objects.get(username=username)):
+                    print("this is wrong this i ever done in my life")
+                    self.send_mail(rsa_decrypt(user[0].email))
+                # if(tt is None):
+                #     print("tt is none")
+                # if(len(listoftt)<=0):
+                #     print("it is 0")
+                # if(ft!=user):
+                #     print("they are not same")
+
                 if len(user) > 0:
                     serializer = OwnerSerializer(user[0])
                     otp=self.generate_verification_code()
@@ -316,6 +340,7 @@ class login_api(views.APIView):
                     print("token")
                     print(otp)
                     token=generate_token(user[0])
+                    TokenList.objects.create(user=User.objects.get(username=user[0].username),token=token.token)
                     dot = {}
                     # Decrypting and populating 'dot'
                     for d in serializer.data:
@@ -334,12 +359,13 @@ class login_api(views.APIView):
                             pass
 
                     new_serializer = serializer.__class__(data=dot)
+                    print(dot)
                     if new_serializer.is_valid():
                         print(new_serializer.data)
                     return JsonResponse(
                         {
                             'auth': True,
-                            'user': new_serializer.data,  # Use the new serializer's validated data
+                            'user': dot,  
                             'otp': otp,
                             'token': str(token.token),
                         },
