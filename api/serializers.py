@@ -12,11 +12,12 @@ class UserSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        #svalidated_data['password'] = make_password(validated_data['password'])
+        # validated_data['password'] = make_password(validated_data['password'])
         return super().create(validated_data)
 
     def update(self, instance, validated_data):
         instance.username = validated_data.get('username', instance.username)
+        instance.password = make_password(validated_data.get('password', instance.password))
         instance.email = validated_data.get('email', instance.email)
         instance.first_name = validated_data.get('first_name', instance.first_name)
         instance.last_name = validated_data.get('last_name', instance.last_name)

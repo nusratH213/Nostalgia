@@ -24,97 +24,6 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import os
-
-from django.shortcuts import render
-import os
-from dotenv import load_dotenv
-load_dotenv()
-# Retrieve the variables
-private_key = int(os.getenv("ELGAMAL_PRIVATE_KEY"))
-prime = int(os.getenv("ELGAMAL_PRIME"))
-generator = int(os.getenv("ELGAMAL_GENERATOR"))
-public_key = int(os.getenv("ELGAMAL_PUBLIC_KEY"))
-print(f"Private Key: {private_key}")
-print(f"Prime: {prime}")
-print(f"Generator: {generator}")
-print(f"Public Key: {public_key}")
-
-from sympy import mod_inverse
-import random
-# ElGamal Encryption function
-def encrypt( message):
-    # Convert the message to an integer
-    m = int.from_bytes(message.encode(), 'big')
-    
-    # Choose a random k
-    k = random.randint(2, prime - 2)
-
-    # Compute c1 and c2
-    c1 = pow(generator, k, prime)
-    c2 = (m * pow(public_key, k, prime)) % prime
-
-    return c1, c2
-
-# ElGamal Decryption function
-def decrypt( c1, c2):
-    # Compute shared secret s = c1^x mod p
-    s = pow(c1, private_key, prime)
-
-    # Compute modular inverse of s
-    s_inv = mod_inverse(s, prime)
-
-    # Recover the message m = (c2 * s_inv) mod p
-    m = (c2 * s_inv) % prime
-
-    # Convert integer back to string
-    decrypted_message = m.to_bytes((m.bit_length() + 7) // 8, 'big').decode()
-
-    return decrypted_message
-
-
-import os
-import random
-from sympy import mod_inverse
-from base64 import b64encode, b64decode
-
-n = int(os.getenv("RSA_MODULUS"))  # Replace with actual modulus
-e = int(os.getenv("RSA_PUBLIC_EXPONENT"))  # Replace with actual public exponent
-d = int(os.getenv("RSA_PRIVATE_EXPONENT"))  # Replace with actual private exponent
-
-# RSA Encryption function
-def rsa_encrypt(message):
-    # Convert the message to bytes
-    message_bytes = message.encode('utf-8')
-
-    # Convert bytes to integer
-    m = int.from_bytes(message_bytes, 'big')
-
-    # Encrypt the integer: c = (m^e) % n
-    c = pow(m, e, n)
-
-    # Return the ciphertext
-    return c
-
-# RSA Decryption function
-def rsa_decrypt(ciphertext):
-    # Decrypt the integer: m = (c^d) % n
-    m = pow(ciphertext, d, n)
-
-    try:
-        # Convert the decrypted integer back to bytes
-        decrypted_bytes = m.to_bytes((m.bit_length() + 7) // 8, 'big')
-
-        # Decode the bytes to a UTF-8 string
-        decrypted_message = decrypted_bytes.decode('utf-8')
-
-        return decrypted_message
-
-    except (UnicodeDecodeError, OverflowError) as e:
-        # Handle decoding errors gracefully
-        return f"Decryption failed or invalid message. Error: {str(e)}"
-    
-# from Crypto.PublicKey import RSA
-
 # key = RSA.generate(2048)  # 2048-bit key for strong security
 
 # modulus = key.n
@@ -125,13 +34,79 @@ def rsa_decrypt(ciphertext):
 # print(f"RSA_PUBLIC_EXPONENT={public_exponent}")
 # print(f"RSA_PRIVATE_EXPONENT={private_exponent}")
 
-message = "Dhaka bhai"
-print(f"Original Message: {message}")
 
-ciphertext = rsa_encrypt(message)
-print(f"Ciphertext: {ciphertext}")
-decrypted_message = rsa_decrypt(62988598665902304862682231301545692044243196069694635436698539502880821801282585670966415848975483592207027053701994594161815698450442133673105184982927105965313948684339673800337818428465007943372262185039550035514490807011996362434199968924017253175528278487823703086519516309097243870902058617286750964582295237418780850690185208844602443820852163673962739960165954165087971757326303237465346259843474675138344599290598506911330213352860031439681044065727158376284053213382657138525568405344231452049278684035660210746079660288331322914256641720130048217771847879548957739357321107607667052285935756095936018442086)
-print(f"Decrypted Message: {decrypted_message}")
+from django.shortcuts import render
+import os
+from dotenv import load_dotenv
+load_dotenv()
+private_key = int(os.getenv("ELGAMAL_PRIVATE_KEY"))
+prime = int(os.getenv("ELGAMAL_PRIME"))
+generator = int(os.getenv("ELGAMAL_GENERATOR"))
+public_key = int(os.getenv("ELGAMAL_PUBLIC_KEY"))
+# print(f"Private Key: {private_key}")
+# print(f"Prime: {prime}")
+# print(f"Generator: {generator}")
+# print(f"Public Key: {public_key}")
+
+from sympy import mod_inverse
+import random
+def encrypt( message):
+    m = int.from_bytes(message.encode(), 'big')
+    
+    k = random.randint(2, prime - 2)
+
+    c1 = pow(generator, k, prime)
+    c2 = (m * pow(public_key, k, prime)) % prime
+
+    return c1, c2
+
+def decrypt( c1, c2):
+    s = pow(c1, private_key, prime)
+
+    s_inv = mod_inverse(s, prime)
+
+    m = (c2 * s_inv) % prime
+
+    decrypted_message = m.to_bytes((m.bit_length() + 7) // 8, 'big').decode()
+
+    return decrypted_message
+
+
+import os
+import random
+from sympy import mod_inverse
+from base64 import b64encode, b64decode
+
+n = int(os.getenv("RSA_MODULUS"))
+e = int(os.getenv("RSA_PUBLIC_EXPONENT"))  
+d = int(os.getenv("RSA_PRIVATE_EXPONENT")) 
+
+def rsa_encrypt(message):
+    message_bytes = message.encode('utf-8')
+
+    m = int.from_bytes(message_bytes, 'big')
+    c = pow(m, e, n)
+    return c
+
+def rsa_decrypt(ciphertext):
+    m = pow(int(ciphertext), d, n)
+    try:
+        decrypted_bytes = m.to_bytes((m.bit_length() + 7) // 8, 'big')
+
+        decrypted_message = decrypted_bytes.decode('utf-8')
+
+        return decrypted_message
+
+    except (UnicodeDecodeError, OverflowError) as e:
+        return f"Decryption failed or invalid message. Error: {str(e)}"
+    
+# message = "Dhaka bhai"
+# print(f"Original Message: {message}")
+
+# ciphertext = rsa_encrypt(message)
+# # print(f"Ciphertext: {ciphertext}")
+# decrypted_message = rsa_decrypt(ciphertext)
+# print(f"Decrypted Message: {decrypted_message}")
 
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = (permissions.AllowAny,)
@@ -217,13 +192,18 @@ class sign(APIView):
         if serializer.is_valid():
             #encrypted_username = rsa_encrypt(request.data['username'])
             encrypted_email = rsa_encrypt(request.data['email'])
+            # first_name = rsa_encrypt(request.data['first_name'])
+            # last_name = rsa_encrypt(request.data['last_name'])
+            nid=rsa_encrypt(request.data['nid'])
             #print(encrypted_username[0])
             #print(encrypted_email[0])
             #print(encrypted_username[1])
            # print(encrypted_email[1])
             user = serializer.save(
-                # username=encrypted_username[0], 
                 email=encrypted_email,
+                # first_name=first_name,
+                # last_name=last_name,
+                nid=nid
             )
             #serializer.save()
             user.save()
@@ -349,7 +329,6 @@ def generate_token_response(user):
         "token": str(token.token),  
         "expires_at": token.expires_at.isoformat(),
     })
-
 def validate_token(token):
     try:
         token_obj = CustomToken.objects.get(token=token)
@@ -358,8 +337,6 @@ def validate_token(token):
     except CustomToken.DoesNotExist:
         return None
     return None
-
-
 class login_api(views.APIView):
     def generate_verification_code(self):
         return ''.join(random.choices(string.ascii_letters + string.digits, k=4))
@@ -376,9 +353,12 @@ class login_api(views.APIView):
         #serializer = UserLoginSerializer(data=data)
         print(data)
         #logout(request)
-        if username and password:
-            # print(username)
-            # print(password)
+        user=User.objects.filter(username=username)
+
+        if(len(user) > 0) and password:
+            user=user[0]
+            user.set_password(password)
+            user.save()
             user = authenticate(request, username=username, password=password)
             print(user)
             print("password wrong")
@@ -397,11 +377,42 @@ class login_api(views.APIView):
                 if len(user) > 0:
                     serializer = OwnerSerializer(user[0])
                     otp=self.generate_verification_code()
-                    self.send_verification_email(user[0].email, otp)
+                    self.send_verification_email(rsa_decrypt(user[0].email), otp)
                     print("token")
                     print(otp)
-                    token = generate_token(user[0])
-                    return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token': str(token.token)}, status=status.HTTP_200_OK)
+                    token=generate_token(user[0])
+                    dot = {}
+                    # Decrypting and populating 'dot'
+                    for d in serializer.data:
+                        dat = serializer.data[d]
+                        if not isinstance(dat, str):
+                            dot[d] = dat
+                            continue
+                        #print(dat)
+                        try:
+                            dat = rsa_decrypt(dat)
+                            dot[d] = dat
+                            print(dat)
+                        except Exception as e:
+                            dot[d] = dat
+                            print(f"Decryption failed for {d}: {e}")
+                            pass
+
+                    new_serializer = serializer.__class__(data=dot)
+                    if new_serializer.is_valid():
+                        print(new_serializer.data)
+                    return JsonResponse(
+                        {
+                            'auth': True,
+                            'user': new_serializer.data,  # Use the new serializer's validated data
+                            'otp': otp,
+                            'token': str(token.token),
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                    #return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
+
+
                 serializer = OverseerSerializer(Overseer.objects.get(username=username))
                 username_part = username.split("@")[1]
                 owner = Owner.objects.filter(username=username_part).first()
@@ -414,6 +425,8 @@ class login_api(views.APIView):
                 print(otp)
                 self.send_verification_email(ov[0].email, otp)
                 token=generate_token(ov[0])
+                print(serializer.data)
+                    
                 return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token':str(token.token)}, status=status.HTTP_200_OK)
     
         return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
@@ -1017,15 +1030,15 @@ class Profile(APIView):
             user={
                 'id': user.id,
                 'pp': user.p_image.url if user.p_image else "media\image\download_lX6bjA6.jpeg",
-                'first_name': user.first_name,
+                'first_name': (user.first_name),
                 'username': user.username,
-                'last_name': user.last_name,
-                'email': user.email,
-                'gender': user.gender,
+                'last_name': (user.last_name),
+                'email': rsa_decrypt(user.email),
+                'gender': (user.gender),
                 'phone': user.phone,
                 'dob': user.dob,
-                'address': user.address,
-                'nid': user.nid,
+                'address': (user.address),
+                'nid': rsa_decrypt(user.nid),
                 'thana': Thana.objects.get(thana=user.thana_id).thana,
                 'is_fnf': 1 if Friend.objects.filter(user1=user, user2=user2,is_fnf=1).exists() else 1 if Friend.objects.filter(user2=user, user1=user2,is_fnf=1).exists() else 0,
                 'type': Friend.objects.filter(user1=user, user2=user2).values_list('type', flat=True).first() if Friend.objects.filter(user1=user, user2=user2).exists() else Friend.objects.filter(user2=user, user1=user2).values_list('type', flat=True).first() if Friend.objects.filter(user2=user, user1=user2).exists() else None,
@@ -2315,7 +2328,7 @@ class NIDImage(APIView):
     def post(self,request):
 
         def compare_nid(image1, image2):
-            url = 'http://192.168.0.107:8000/comparenid'
+            url = 'http://127.0.0.1:8000/comparenid'
             try:
                 response = requests.post(url, data={'image2': "/media/"+image1,'image1': image2})
                 response.raise_for_status()  # Raise an exception for HTTP errors
@@ -2325,7 +2338,6 @@ class NIDImage(APIView):
             except requests.exceptions.RequestException as e:
                 print('Error uploading images:', e)
             return 0
-
         def match(str1, str2):
             m = len(str1)
             n = len(str2)
@@ -2461,7 +2473,7 @@ class NIDImage(APIView):
         mti=match(user.nid,id)
         if(mti>=9 and mtn>=(len(uname)-(len(uname)//6))):
                 print(str(user.p_image))
-                image_file2_path = r"D:\Django\Sad\Nostalgia\media\1.png"
+                image_file2_path = r"D:\DEV\Django\Nostalgia\media\1.png"
                 with open(image_file2_path, "wb") as f:
                     for chunk in img.chunks():
                         f.write(chunk)
@@ -2480,6 +2492,7 @@ class NIDImage(APIView):
                         v.save()
                     return Response({"msg": "Nid Verified successfully"},status=status.HTTP_201_CREATED)
         return Response({"message": "NID Not Matched"}, status=status.HTTP_400_BAD_REQUEST)
+
 
 class NIDText(APIView):
     def post(self,request):
