@@ -164,7 +164,10 @@ class Owner_update(APIView):
         # Deserialize the incoming data
         serializer = OwnwerUpdateSerializer(owner, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(
+                email=rsa_encrypt(request.data['email']),
+                nid=rsa_encrypt(request.data['nid'])
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
         print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -615,7 +618,11 @@ class FriendList(APIView):
         print(userid)
         # Serialize the data
         serialized_data = []
+        print(users)
+        userid=Owner.objects.get(username=userid).id
         for user in users:
+            print(userid)
+            print(Owner.objects.get(id=userid))
             fnd=Friend.objects.filter(user1=Owner.objects.get(id=userid),user2=user.id)
             fnd2=Friend.objects.filter(user2=Owner.objects.get(id=userid),user1=user.id)
             fnd=fnd[0] if len(fnd) > 0 else None
@@ -649,9 +656,8 @@ class FriendList(APIView):
 class FindFriend(APIView):
     def get(self, request):
         userid=request.GET.get('user_id')
-        if len(str(userid)) > 3:
-            userid = Owner.objects.get(username=userid)
-            userid = userid.id
+        userid = Owner.objects.get(username=userid)
+        userid = userid.id
         users = Owner.objects.all()
         # Serialize the data
         serialized_data = []
@@ -1263,9 +1269,9 @@ class CompareImagesView(APIView):
         image_base64_1 = base64.b64encode(image_file1.read()).decode('utf-8')
         # image_base64_1 = base64.b64encode(image_file2.read()).decode('utf-8')
         # Download and save the second image file
-        image_file2_url = "http://192.168.0.107:8000" + image_file2
+        image_file2_url = "http://localhost:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
+        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\2.png"
         image_base64_2=""
         response = requests.get(image_file2_url)
         if response.status_code == 200:
@@ -1300,12 +1306,21 @@ class CompareImages(APIView):
             
         if not (image_file1 and image_file2):
             return JsonResponse({'error': 'Missing image data in request'}, status=400)
-        
-        image_file1_url = "http://192.168.0.107:8000" + image_file2
+        image_file2 =image_file2[7:]
+        image_file1 =image_file1[7:]
+        image_file2='//0/'+image_file2
+        image_file1='//0/'+image_file1
+        print(image_file1)
+        print(image_file2)
+
+        image_file1_url = "http://localhost:8000" + image_file2
         print(image_file1_url)
-        image_file1_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
+        image_file1_path = r"D:\DEV\Django\Nostalgia\media\image\1.png"
         image_base64_1=""
+        #http://localhost:8000//0/image/5_olUPHyf.jpg
+        print("on the way for img")
         response = requests.get(image_file1_url)
+        print("first image anbo")
         if response.status_code == 200:
             # Save the image file
             with open(image_file1_path, "wb") as f:
@@ -1320,11 +1335,12 @@ class CompareImages(APIView):
             return JsonResponse({'error': 'Failed to download the Profile image file'}, status=500)
         # image_base64_1 = base64.b64encode(image_file2.read()).decode('utf-8')
         # Download and save the second image file
-        image_file2_url = "http://192.168.0.107:8000" + image_file2
+        image_file2_url = "http://localhost:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\5_8YOuJOK.jpg"
+        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\2.png"
         image_base64_2=""
         response = requests.get(image_file2_url)
+        print("second image anbo")
         if response.status_code == 200:
             # Save the image file
             with open(image_file2_path, "wb") as f:
@@ -1336,6 +1352,7 @@ class CompareImages(APIView):
         # Perform image comparison using FaceApiCompare class method
         if not image_base64_2:
             return JsonResponse({'error': 'Failed to download the Profile image file'}, status=500)
+        print("all done, compare now baki ase sudu")
 
         result = face_api_compare.compare_images(image_base64_1, image_base64_2)
         # Return the comparison result as JSON response
@@ -2328,7 +2345,7 @@ class NIDImage(APIView):
     def post(self,request):
 
         def compare_nid(image1, image2):
-            url = 'http://127.0.0.1:8000/comparenid'
+            url = 'http://localhost:8000/comparenid'
             try:
                 response = requests.post(url, data={'image2': "/media/"+image1,'image1': image2})
                 response.raise_for_status()  # Raise an exception for HTTP errors
@@ -2463,15 +2480,20 @@ class NIDImage(APIView):
                 IMAGE_PATH = img
                 reader = easyocr.Reader(['en', 'bn'], gpu=True)
                 result = reader.readtext(IMAGE_PATH)
-        except catch(e):
+        except catch(e): # type: ignore
               return Response({"message": "NID Not Matched"}, status=status.HTTP_400_BAD_REQUEST)
 
         # print(text)
         user=Owner.objects.get(username=user)
+        print(user)
+        print("ami verify hote ass")
         uname=user.first_name+" "+user.last_name
         mtn=match((user.first_name+" "+user.last_name).lower(),name.lower())
-        mti=match(user.nid,id)
+        mti=match(rsa_decrypt(user.nid),id)
+        print(uname)
+        print(rsa_decrypt(user.nid))
         if(mti>=9 and mtn>=(len(uname)-(len(uname)//6))):
+                print("whats plbm")
                 print(str(user.p_image))
                 image_file2_path = r"D:\DEV\Django\Nostalgia\media\1.png"
                 with open(image_file2_path, "wb") as f:
