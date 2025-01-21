@@ -3,16 +3,14 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth.hashers import make_password
 from django.utils import timezone
-
 class UserManager(BaseUserManager):
-    def create_user(self, username, password=None, **extra_fields):
+    def create_user(self, username, password="12", **extra_fields):
         if not username:
             raise ValueError('The Username field must be set')
         user = self.model(username=username, **extra_fields)
-        user.set_password(password)
+        # user.set_password(password)
         user.save(using=self._db)
         return user
-
     def create_superuser(self, username, password=None, **extra_fields):
         extra_fields.setdefault('is_staff', True)
         extra_fields.setdefault('is_superuser', True)
@@ -23,7 +21,6 @@ class UserManager(BaseUserManager):
             raise ValueError('Superuser must have is_superuser=True.')
 
         return self.create_user(username, password, **extra_fields)
-
 
 class User(AbstractBaseUser, PermissionsMixin):
     groups = models.ManyToManyField(
@@ -39,22 +36,21 @@ class User(AbstractBaseUser, PermissionsMixin):
         related_name='custom_user_permissions'  # Change this to a unique related_name
     )
     # Your
-    email = models.EmailField(unique=True)
+    email = models.TextField(unique=True)
     username = models.CharField(max_length=100, unique=True)
-    first_name = models.CharField(max_length=100)
-    last_name = models.CharField(max_length=100)
-    gender = models.CharField(max_length=10)
-    phone = models.CharField(max_length=20)
+    first_name = models.TextField()
+    last_name = models.TextField()
+    gender = models.TextField()
+    phone = models.TextField(unique=True)
     dob = models.DateField()
-    address = models.CharField(max_length=255)
+    address = models.TextField()
     password = models.CharField(max_length=255)
-    nid = models.CharField(max_length=20)
+    nid = models.TextField(unique=True)
     p_image = models.ImageField(upload_to='image/', null=True)
     thana = models.ForeignKey('Thana', on_delete=models.CASCADE)
 
     USERNAME_FIELD = 'username'
     REQUIRED_FIELDS = ['email']
-
     objects = UserManager()
 
     def __str__(self):
@@ -92,6 +88,10 @@ class Owner(User):
         self.password = make_password(self.password)
         super().save(*args, **kwargs)
 
+from django.db import models
+import uuid
+
+
 
 class Additional(models.Model):
     id = models.AutoField(primary_key=True)
@@ -113,6 +113,22 @@ class Overseer(User):
         # Update other common fields
         self.password = make_password(self.password)
         super().save(*args, **kwargs)
+class CustomToken(models.Model):
+        user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="custom_token")
+        token = models.UUIDField(default=uuid.uuid4, unique=True)
+        created_at = models.DateTimeField(auto_now_add=True)
+        expires_at = models.DateTimeField()  
+        def __str__(self):
+            return self.token
+        def is_valid(self):
+            from django.utils.timezone import now
+            return now() < self.expires_at  
+    
+class TokenList(models.Model):
+    id=models.AutoField(primary_key=True)
+    user=models.ForeignKey(User,on_delete=models.CASCADE)
+    token=models.CharField(max_length=500)
+
 class Verified(models.Model):
     verified = models.BooleanField(default=False)
     user=models.ForeignKey(Owner, on_delete=models.CASCADE,primary_key=True)
@@ -289,7 +305,7 @@ class Guide(models.Model):
     dob = models.DateField()
     agency = models.ForeignKey('Agency', on_delete=models.CASCADE)
     def __str__(self):
-        return self.G_name
+        return self.name
 
 class Trip(models.Model):
     TripID = models.AutoField(primary_key=True)
@@ -301,12 +317,9 @@ class Trip(models.Model):
     Privacy = models.CharField(max_length=255)
     Creator = models.ForeignKey(Owner, on_delete=models.CASCADE)
     Thana = models.ForeignKey(Thana, on_delete=models.CASCADE)
-    #guide = models.ForeignKey(Guide, on_delete=models.CASCADE)
     guide=models.CharField(max_length=255)
-
     def __str__(self):
         return f'Trip ID: {self.TripID}, Location: {self.Location}'
-
 class TripMember(models.Model):
     Tid = models.AutoField(primary_key=True)
     cancel = models.IntegerField()
