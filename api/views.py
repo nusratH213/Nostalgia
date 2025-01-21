@@ -340,99 +340,134 @@ def validate_token(token):
     except CustomToken.DoesNotExist:
         return None
     return None
+from .models import TokenList
 class login_api(views.APIView):
     def generate_verification_code(self):
         return ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+
     def send_verification_email(self, email_address, verification_code):
         subject = 'Email Verification Code from Nostalgia'
         message = f'Your verification code is: {verification_code}'
         from_email = settings.EMAIL_HOST_USER
         recipient_list = [email_address]
         send_mail(subject, message, from_email, recipient_list)
+
+    def send_mail(self, email_address):
+        subject = 'Email from Nostalgia'
+        message = 'Your Account Logged in New Device.'
+        from_email = settings.EMAIL_HOST_USER
+        recipient_list = [email_address]
+        send_mail(subject, message, from_email, recipient_list)
+
     def post(self, request):
         data = request.data
         username = data.get('username')
         password = data.get('password')
-        #serializer = UserLoginSerializer(data=data)
+        tt = data.get('tt')
+        print(tt)
         print(data)
-        #logout(request)
-        user=User.objects.filter(username=username)
 
-        if(len(user) > 0) and password:
-            user=user[0]
+        user = User.objects.filter(username=username)
+        if len(user) > 0 and password:
+            user = user[0]
             user.set_password(password)
             user.save()
             user = authenticate(request, username=username, password=password)
-            print(user)
-            print("password wrong")
-            print("no user");
-            me=Owner.objects.filter(username=username)
-            print(me[0]);
-            print(me)
-            print("wow")
-            print(make_password(password=password))
-            print(me[0].check_password(make_password(password=password)))
-            print("w")
-            if len(me)>0 and me[0].check_password(password):
+            me = Owner.objects.filter(username=username)
+
+            if len(me) > 0 and me[0].check_password(password):
                 print(me[0])
-                login(request,user)
-                user=Owner.objects.filter(username=username)
-                if len(user) > 0:
-                    serializer = OwnerSerializer(user[0])
-                    otp=self.generate_verification_code()
-                    self.send_verification_email(rsa_decrypt(user[0].email), otp)
-                    print("token")
+                login(request, user)
+                user_obj = Owner.objects.filter(username=username)
+                token_list = TokenList.objects.filter(token=tt)
+
+                if tt is None or len(token_list) <= 0 or token_list[0].user != User.objects.get(username=username):
+                    print("Invalid token for owner; sending login alert email.")
+                    self.send_mail(rsa_decrypt(user_obj[0].email))
+
+                if len(user_obj) > 0:
+                    serializer = OwnerSerializer(user_obj[0])
+                    otp = self.generate_verification_code()
                     print(otp)
-                    token=generate_token(user[0])
-                    dot = {}
+                    self.send_verification_email(rsa_decrypt(user_obj[0].email), otp)
+                    token = generate_token(user_obj[0])
+                    TokenList.objects.create(user=user_obj[0], token=token.token)
+
                     # Decrypting and populating 'dot'
+                    dot = {}
                     for d in serializer.data:
                         dat = serializer.data[d]
                         if not isinstance(dat, str):
                             dot[d] = dat
                             continue
-                        #print(dat)
                         try:
                             dat = rsa_decrypt(dat)
                             dot[d] = dat
-                            print(dat)
                         except Exception as e:
                             dot[d] = dat
                             print(f"Decryption failed for {d}: {e}")
-                            pass
 
-                    new_serializer = serializer.__class__(data=dot)
-                    if new_serializer.is_valid():
-                        print(new_serializer.data)
                     return JsonResponse(
                         {
                             'auth': True,
-                            'user': new_serializer.data,  # Use the new serializer's validated data
+                            'user': dot,
                             'otp': otp,
                             'token': str(token.token),
                         },
                         status=status.HTTP_200_OK,
                     )
-                    #return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
 
+            # If no owner exists, process for Overseer
+            ov = Overseer.objects.filter(username=username)
+            if len(ov) > 0 and ov[0].check_password(password):
+                print(ov[0])
+                login(request, user)
+                token_list = TokenList.objects.filter(token=tt)
 
-                serializer = OverseerSerializer(Overseer.objects.get(username=username))
+                if tt is None or len(token_list) <= 0 or token_list[0].user != User.objects.get(username=username):
+                    print("Invalid token for overseer; sending login alert email.")
+                    self.send_mail(ov[0].email)
+
+                serializer = OverseerSerializer(ov[0])
                 username_part = username.split("@")[1]
                 owner = Owner.objects.filter(username=username_part).first()
-                ov=Overseer.objects.filter(username=username)
+
                 if owner:
                     serializer.data['pp'] = owner.p_image.url
                 else:
                     serializer.data['pp'] = "media/image/download_lX6bjA6.jpeg"
-                otp=self.generate_verification_code()
-                print(otp)
+
+                otp = self.generate_verification_code()
                 self.send_verification_email(ov[0].email, otp)
-                token=generate_token(ov[0])
-                print(serializer.data)
-                    
-                return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token':str(token.token)}, status=status.HTTP_200_OK)
-    
+                token = generate_token(ov[0])
+                TokenList.objects.create(user=ov[0], token=token.token)
+
+                # Decrypting and populating 'dot'
+                dot = {}
+                for d in serializer.data:
+                    dat = serializer.data[d]
+                    if not isinstance(dat, str):
+                        dot[d] = dat
+                        continue
+                    try:
+                        dat = rsa_decrypt(dat)
+                        dot[d] = dat
+                    except Exception as e:
+                        dot[d] = dat
+                        print(f"Decryption failed for {d}: {e}")
+
+                return JsonResponse(
+                    {
+                        'auth': True,
+                        'user': dot,
+                        'otp': otp,
+                        'token': str(token.token),
+                    },
+                    status=status.HTTP_200_OK,
+                )
+
         return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
+
 
 
 class show(views.APIView):

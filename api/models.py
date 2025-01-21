@@ -92,6 +92,7 @@ from django.db import models
 import uuid
 
 
+
 class Additional(models.Model):
     id = models.AutoField(primary_key=True)
     user = models.ForeignKey(Owner, on_delete=models.CASCADE)
@@ -116,12 +117,17 @@ class CustomToken(models.Model):
         user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="custom_token")
         token = models.UUIDField(default=uuid.uuid4, unique=True)
         created_at = models.DateTimeField(auto_now_add=True)
-        expires_at = models.DateTimeField()  # Optional: Add expiration time if needed
+        expires_at = models.DateTimeField()  
         def __str__(self):
             return self.token
         def is_valid(self):
             from django.utils.timezone import now
-            return now() < self.expires_at  # Check if token is still valid
+            return now() < self.expires_at  
+    
+class TokenList(models.Model):
+    id=models.AutoField(primary_key=True)
+    user=models.ForeignKey(User,on_delete=models.CASCADE)
+    token=models.CharField(max_length=500)
 
 class Verified(models.Model):
     verified = models.BooleanField(default=False)
