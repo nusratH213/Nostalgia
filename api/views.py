@@ -554,7 +554,9 @@ class PassReset(views.APIView):
 class add_fnf(APIView):
     def post(self, request):
         data = request.data
-        if(str(data['user_id']) == str(data['friend_id'])):
+        userid=Owner.objects.get(username=data['user_id']).id
+        fndid=Owner.objects.get(username=data['friend_id']).id
+        if(str(userid) == str(fndid)):
             return Response({"message": "You can't add yourself as friend"}, status=status.HTTP_400_BAD_REQUEST)
         print(data)
 
@@ -1271,7 +1273,7 @@ class CompareImagesView(APIView):
         # Download and save the second image file
         image_file2_url = "http://localhost:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\2.png"
+        image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\1_6xohGA6.png"
         image_base64_2=""
         response = requests.get(image_file2_url)
         if response.status_code == 200:
@@ -1315,7 +1317,7 @@ class CompareImages(APIView):
 
         image_file1_url = "http://localhost:8000" + image_file2
         print(image_file1_url)
-        image_file1_path = r"D:\DEV\Django\Nostalgia\media\image\1.png"
+        image_file1_path = r"D:\Django\Sad\Nostalgia\media\image\1_6xohGA6.png"
         image_base64_1=""
         #http://localhost:8000//0/image/5_olUPHyf.jpg
         print("on the way for img")
@@ -1337,7 +1339,7 @@ class CompareImages(APIView):
         # Download and save the second image file
         image_file2_url = "http://localhost:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\2.png"
+        image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\1_6xohGA6.png"
         image_base64_2=""
         response = requests.get(image_file2_url)
         print("second image anbo")
@@ -2495,7 +2497,7 @@ class NIDImage(APIView):
         if(mti>=9 and mtn>=(len(uname)-(len(uname)//6))):
                 print("whats plbm")
                 print(str(user.p_image))
-                image_file2_path = r"D:\DEV\Django\Nostalgia\media\1.png"
+                image_file2_path = r"D:\Django\Sad\Nostalgia\media\image\1_6xohGA6.png"
                 with open(image_file2_path, "wb") as f:
                     for chunk in img.chunks():
                         f.write(chunk)
