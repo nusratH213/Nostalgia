@@ -24,11 +24,20 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import os
-# key = RSA.generate(2048)  # 2048-bit key for strong security
+from Crypto.PublicKey import RSA
+# key = RSA.generate(2048)  
 
 # modulus = key.n
 # public_exponent = key.e
 # private_exponent = key.d
+class PBVT(APIView):
+    def get(self, request):
+        key = RSA.generate(2048)
+        modulus = key.n
+        public_exponent = key.e
+        private_exponent = key.d
+        return Response(data={"n": str(modulus), "e": str(public_exponent), "d": str(private_exponent)})
+
 
 # print(f"RSA_MODULUS={modulus}")
 # print(f"RSA_PUBLIC_EXPONENT={public_exponent}")
@@ -79,7 +88,7 @@ from base64 import b64encode, b64decode
 
 n = int(os.getenv("RSA_MODULUS"))
 e = int(os.getenv("RSA_PUBLIC_EXPONENT"))  
-d = int(os.getenv("RSA_PRIVATE_EXPONENT")) 
+d = int(os.getenv("RSA_PRIVATE_EXPONENT"))
 
 def rsa_encrypt(message):
     message_bytes = message.encode('utf-8')
@@ -99,7 +108,50 @@ def rsa_decrypt(ciphertext):
 
     except (UnicodeDecodeError, OverflowError) as e:
         return f"Decryption failed or invalid message. Error: {str(e)}"
-    
+class msge(APIView):
+    def rsa_encrypt(self,e,d,n,message):
+        message_bytes = message.encode('utf-8')
+
+        m = int.from_bytes(message_bytes, 'big')
+        c = pow(m, e, n)
+        return c
+    def get(self,request):
+        e=request.GET.get('e')
+        d=request.GET.get('d')
+        n=request.GET.get('n')
+        msg=request.GET.get('msg')
+        print("this is creaditionals")
+        print(e)
+        print(d)
+        print(d)
+        print(msg)
+        print("this is end of credit")
+        return Response(data=str(self.rsa_encrypt(int(e),int(d),int(n),msg)))
+
+class msgd(APIView):
+    def rsa_decrypt(self,e,d,n,ciphertext):
+        m = pow(int(ciphertext), d, n)
+        try:
+            decrypted_bytes = m.to_bytes((m.bit_length() + 7) // 8, 'big')
+
+            decrypted_message = decrypted_bytes.decode('utf-8')
+            print(decrypted_message)
+            return decrypted_message
+        except (UnicodeDecodeError, OverflowError) as e:
+            return f"Decryption failed or invalid message. Error: {str(e)}"
+    def get(self,request):
+        e=request.GET.get('e')
+        d=request.GET.get('d')
+        n=request.GET.get('n')
+        msg=request.GET.get('msg')
+        print("EEEEEEEEEE")
+        print(e)
+        print(d)
+        print(d)
+        print("this is msg")
+        print(msg)
+        return Response(data=self.rsa_decrypt(int(e),int(d),int(n),int(msg)))
+        
 # message = "Dhaka bhai"
 # print(f"Original Message: {message}")
 
@@ -303,9 +355,12 @@ class login_api(views.APIView):
         username = data.get('username')
         password = data.get('password')
         tt = data.get('tt')
+        # if tt is None:
+        #     return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
+        print("this is tt")
         print(tt)
         #serializer = UserLoginSerializer(data=data)
-        print(data)
+        # print(data)
         #logout(request)
         user=User.objects.filter(username=username)
 
@@ -340,7 +395,7 @@ class login_api(views.APIView):
                     print("token")
                     print(otp)
                     token=generate_token(user[0])
-                    TokenList.objects.create(user=User.objects.get(username=user[0].username),token=token.token)
+                    TokenList.objects.create(user=User.objects.get(username=user[0].username),token=tt)
                     dot = {}
                     # Decrypting and populating 'dot'
                     for d in serializer.data:

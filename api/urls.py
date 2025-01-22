@@ -91,6 +91,9 @@ urlpatterns=[
     path('updategroup',views.UpdateGroup.as_view(), name='updategroup'),
     path('findthana',views.FindThana.as_view(), name='findthana'),
     path('finddistrict',views.FindDistrict.as_view(), name='finddistrict'),
+    path('pbvt',views.PBVT.as_view(), name='pbvt'),
+    path('msge',views.msge.as_view(),name='msge'),
+    path('msgd',views.msgd.as_view(),name='msgd')
     ]
 
 
