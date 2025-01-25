@@ -266,19 +266,25 @@ class sign(APIView):
         else :
             print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+import random
 @method_decorator(csrf_exempt, name='dispatch')
 class _sign(views.APIView):
     def post(self, request):
+        request.data['nid']=str(random.randint(0,9999999999))
         serializer = OverseerSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
+            print("this is done for overseer")
+            user = serializer.save(
+                email=rsa_encrypt(request.data['email']),
+                nid=rsa_encrypt(request.data['nid'])
+            )
         print(serializer.errors)
-        user.id=0 if user is None else user.id
+        print(serializer.data)
+        id=0 if user is None else user.id
         # data=request.data   
         # overseer=Overseer(username=data['username'],password=data['password'],email=data['email'],phone=data['phone'],address=data['address'],nid=data['nid'],thana_id=data['thana'])
         # overseer.save()
-        return Response({"message": "User created successfully", "user_id":user.id}, status=status.HTTP_201_CREATED)
+        return Response({"message": "User created successfully", "user_id":id}, status=status.HTTP_201_CREATED)
         # print(serializer.errors)
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
@@ -359,6 +365,8 @@ class login_api(views.APIView):
         #     return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
         print("this is tt")
         print(tt)
+        if len(tt)==0:
+            return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
         #serializer = UserLoginSerializer(data=data)
         # print(data)
         #logout(request)
@@ -374,13 +382,10 @@ class login_api(views.APIView):
                 login(request,user)
                 user=Owner.objects.filter(username=username)
                 listoftt=TokenList.objects.filter(token=tt)
-                if(len(listoftt)>0):
-                    ft=listoftt[0].user
+                # if(len(listoftt)>0):
+                #     ft=listoftt[0].user
                 # print(ft)
                 # print(User.objects.get(username=username))
-                if(tt is None or len(listoftt)<=0 or ft!=User.objects.get(username=username)):
-                    print("this is wrong this i ever done in my life")
-                    self.send_mail(rsa_decrypt(user[0].email))
                 # if(tt is None):
                 #     print("tt is none")
                 # if(len(listoftt)<=0):
@@ -389,6 +394,10 @@ class login_api(views.APIView):
                 #     print("they are not same")
 
                 if len(user) > 0:
+                    if(len(listoftt)<=0 or  User.objects.get(username=username) not in [obj.user for obj in listoftt]):
+                        print("this is wrong this i ever done in my life")
+                        self.send_mail(rsa_decrypt(user[0].email))
+
                     serializer = OwnerSerializer(user[0])
                     otp=self.generate_verification_code()
                     self.send_verification_email(rsa_decrypt(user[0].email), otp)
@@ -417,8 +426,7 @@ class login_api(views.APIView):
                     print(dot)
                     if new_serializer.is_valid():
                         print(new_serializer.data)
-                    return JsonResponse(
-                        {
+                    return JsonResponse({
                             'auth': True,
                             'user': dot,  
                             'otp': otp,
@@ -430,9 +438,14 @@ class login_api(views.APIView):
 
 
                 serializer = OverseerSerializer(Overseer.objects.get(username=username))
+
                 username_part = username.split("@")[1]
                 owner = Owner.objects.filter(username=username_part).first()
                 ov=Overseer.objects.filter(username=username)
+                if(len(listoftt)<=0 or  User.objects.get(username=username) not in [obj.user for obj in listoftt]):
+                        print("this is wrong this i ever done in my life")
+                        self.send_mail(rsa_decrypt(ov[0].email))
+
                 if owner:
                     serializer.data['pp'] = owner.p_image.url
                 else:
