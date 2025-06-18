@@ -2951,3 +2951,42 @@ class FindDistrict(APIView):
         district_names = [district for district in District.objects.filter(division_id=data).values_list('district', flat=True)]
         print(district_names)
         return JsonResponse(district_names, safe=False)
+
+//facecompare another
+# from facenet_pytorch import MTCNN, InceptionResnetV1
+# import torch
+# from PIL import Image
+# import numpy as np
+
+# # Initialize face detector and face recognition model
+# mtcnn = MTCNN(image_size=160, margin=0)
+# model = InceptionResnetV1(pretrained='vggface2').eval()
+# def get_embedding(image_path):
+#     img = Image.open(image_path).convert('RGB')  # Ensure 3 channels (RGB)
+#     face = mtcnn(img)
+#     if face is None:
+#         raise Exception(f"No face detected in {image_path}")
+#     face = face.unsqueeze(0)  # Add batch dimension
+#     with torch.no_grad():
+#         embedding = model(face)
+#     return embedding
+
+# def compare_faces(image1, image2):
+#     emb1 = get_embedding(image1)
+#     emb2 = get_embedding(image2)
+#     cos = torch.nn.functional.cosine_similarity(emb1, emb2).item()
+#     print(f"Cosine similarity: {cos:.4f}")
+#     if cos > 0.5:  # threshold; adjust as needed
+#         print("✅ Faces match (same person)")
+#     else:
+#         print("❌ Faces do NOT match (different people)")
+
+#     # distance = (emb1 - emb2).norm().item()
+#     # print(f"Distance between faces: {distance:.4f}")
+    # if distance < 1.1:
+    #     print("✅ Faces match (same person)")
+    # else:
+    #     print("❌ Faces do NOT match (different people)")
+
+# Run comparison
+compare_faces('person1.jpg', 'person3.jpg')
