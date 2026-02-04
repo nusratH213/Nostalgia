@@ -25,8 +25,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 import os
 from Crypto.PublicKey import RSA
-# key = RSA.generate(2048)  
-
+# key = RSA.generate(2048) 
 # modulus = key.n
 # public_exponent = key.e
 # private_exponent = key.d
@@ -37,13 +36,9 @@ class PBVT(APIView):
         public_exponent = key.e
         private_exponent = key.d
         return Response(data={"n": str(modulus), "e": str(public_exponent), "d": str(private_exponent)})
-
-
 # print(f"RSA_MODULUS={modulus}")
 # print(f"RSA_PUBLIC_EXPONENT={public_exponent}")
 # print(f"RSA_PRIVATE_EXPONENT={private_exponent}")
-
-
 from django.shortcuts import render
 import os
 from dotenv import load_dotenv
@@ -92,7 +87,6 @@ d = int(os.getenv("RSA_PRIVATE_EXPONENT"))
 
 def rsa_encrypt(message):
     message_bytes = message.encode('utf-8')
-
     m = int.from_bytes(message_bytes, 'big')
     c = pow(m, e, n)
     return c
@@ -101,9 +95,7 @@ def rsa_decrypt(ciphertext):
     m = pow(int(ciphertext), d, n)
     try:
         decrypted_bytes = m.to_bytes((m.bit_length() + 7) // 8, 'big')
-
         decrypted_message = decrypted_bytes.decode('utf-8')
-
         return decrypted_message
 
     except (UnicodeDecodeError, OverflowError) as e:
@@ -111,7 +103,6 @@ def rsa_decrypt(ciphertext):
 class msge(APIView):
     def rsa_encrypt(self,e,d,n,message):
         message_bytes = message.encode('utf-8')
-
         m = int.from_bytes(message_bytes, 'big')
         c = pow(m, e, n)
         return c
@@ -363,8 +354,6 @@ class login_api(views.APIView):
         tt = data.get('tt')
         # if tt is None:
         #     return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
-        print("this is tt")
-        print(tt)
         if len(tt)==0:
             return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
         #serializer = UserLoginSerializer(data=data)
@@ -412,7 +401,6 @@ class login_api(views.APIView):
                         if not isinstance(dat, str):
                             dot[d] = dat
                             continue
-                        #print(dat)
                         try:
                             dat = rsa_decrypt(dat)
                             dot[d] = dat
@@ -421,7 +409,6 @@ class login_api(views.APIView):
                             dot[d] = dat
                             print(f"Decryption failed for {d}: {e}")
                             pass
-
                     new_serializer = serializer.__class__(data=dot)
                     print(dot)
                     if new_serializer.is_valid():
@@ -2360,13 +2347,13 @@ class GroupRequest(APIView):
             group.delete()
             return Response({"message": "Request removed successfully"}, status=status.HTTP_201_CREATED)
         return Response({"message": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
-
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import numpy as np
 import io
 import easyocr
 import cv2
 import re
+
 class NIDImage(APIView):
     def post(self,request):
 
@@ -2447,7 +2434,7 @@ class NIDImage(APIView):
                 #         print(detection[1])
                 #     f.close()
                 for detection in result:
-                    #print(detection[1])
+                    #print(detection[1])D
                     text.append(detection[1])
                 text = ' '.join(text)
                 # Define regular expressions to extract name, date of birth, and ID number
@@ -2500,7 +2487,6 @@ class NIDImage(APIView):
                 # print("Student Name: ", student_name)
                 # print("Date of Birth: ", date_of_birth)
                 # print("Nationality: ", nationality)
-
             else:
                 # If img is a file path or URL
                 IMAGE_PATH = img
@@ -2508,7 +2494,6 @@ class NIDImage(APIView):
                 result = reader.readtext(IMAGE_PATH)
         except catch(e): # type: ignore
               return Response({"message": "NID Not Matched"}, status=status.HTTP_400_BAD_REQUEST)
-
         # print(text)
         user=Owner.objects.get(username=user)
         print(user)
@@ -2540,8 +2525,7 @@ class NIDImage(APIView):
                         v.save()
                     return Response({"msg": "Nid Verified successfully"},status=status.HTTP_201_CREATED)
         return Response({"message": "NID Not Matched"}, status=status.HTTP_400_BAD_REQUEST)
-
-
+    
 class NIDText(APIView):
     def post(self,request):
         data=request.data
@@ -2551,12 +2535,11 @@ class NIDText(APIView):
         nid=NID.objects.create(NID_number=data['nid'],NID_text=data['text'])
         nid.save()
         return Response({"message": "NID created successfully"}, status=status.HTTP_201_CREATED)
-
+    
 # from django.http import JsonResponse
 # from django.views import View
 # from PIL import Image
 # from pyzbar.pyzbar import decode
-
 # from django.http import JsonResponse
 # from django.views import View
 # from PIL import Image
@@ -3055,7 +3038,6 @@ class MedTime(APIView):
         time.save()
         return Response({"message": "Time created successfully"}, status=status.HTTP_201_CREATED)
 from django.utils.html import escape
-
 class Search(APIView):
     def get(self,reqeust):
         search=reqeust.GET.get('search')
