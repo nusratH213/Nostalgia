@@ -24,7 +24,133 @@ from rest_framework import permissions, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 import os
+from Crypto.PublicKey import RSA
+# key = RSA.generate(2048) 
+# modulus = key.n
+# public_exponent = key.e
+# private_exponent = key.d
+class PBVT(APIView):
+    def get(self, request):
+        key = RSA.generate(2048)
+        modulus = key.n
+        public_exponent = key.e
+        private_exponent = key.d
+        return Response(data={"n": str(modulus), "e": str(public_exponent), "d": str(private_exponent)})
+# print(f"RSA_MODULUS={modulus}")
+# print(f"RSA_PUBLIC_EXPONENT={public_exponent}")
+# print(f"RSA_PRIVATE_EXPONENT={private_exponent}")
 from django.shortcuts import render
+import os
+from dotenv import load_dotenv
+load_dotenv()
+private_key = int(os.getenv("ELGAMAL_PRIVATE_KEY"))
+prime = int(os.getenv("ELGAMAL_PRIME"))
+generator = int(os.getenv("ELGAMAL_GENERATOR"))
+public_key = int(os.getenv("ELGAMAL_PUBLIC_KEY"))
+# print(f"Private Key: {private_key}")
+# print(f"Prime: {prime}")
+# print(f"Generator: {generator}")
+# print(f"Public Key: {public_key}")
+
+from sympy import mod_inverse
+import random
+def encrypt( message):
+    m = int.from_bytes(message.encode(), 'big')
+    
+    k = random.randint(2, prime - 2)
+
+    c1 = pow(generator, k, prime)
+    c2 = (m * pow(public_key, k, prime)) % prime
+
+    return c1, c2
+
+def decrypt( c1, c2):
+    s = pow(c1, private_key, prime)
+
+    s_inv = mod_inverse(s, prime)
+
+    m = (c2 * s_inv) % prime
+
+    decrypted_message = m.to_bytes((m.bit_length() + 7) // 8, 'big').decode()
+
+    return decrypted_message
+
+
+import os
+import random
+from sympy import mod_inverse
+from base64 import b64encode, b64decode
+
+n = int(os.getenv("RSA_MODULUS"))
+e = int(os.getenv("RSA_PUBLIC_EXPONENT"))  
+d = int(os.getenv("RSA_PRIVATE_EXPONENT"))
+
+def rsa_encrypt(message):
+    message_bytes = message.encode('utf-8')
+    m = int.from_bytes(message_bytes, 'big')
+    c = pow(m, e, n)
+    return c
+
+def rsa_decrypt(ciphertext):
+    m = pow(int(ciphertext), d, n)
+    try:
+        decrypted_bytes = m.to_bytes((m.bit_length() + 7) // 8, 'big')
+        decrypted_message = decrypted_bytes.decode('utf-8')
+        return decrypted_message
+
+    except (UnicodeDecodeError, OverflowError) as e:
+        return f"Decryption failed or invalid message. Error: {str(e)}"
+class msge(APIView):
+    def rsa_encrypt(self,e,d,n,message):
+        message_bytes = message.encode('utf-8')
+        m = int.from_bytes(message_bytes, 'big')
+        c = pow(m, e, n)
+        return c
+    def get(self,request):
+        e=request.GET.get('e')
+        d=request.GET.get('d')
+        n=request.GET.get('n')
+        msg=request.GET.get('msg')
+        print("this is creaditionals")
+        print(e)
+        print(d)
+        print(d)
+        print(msg)
+        print("this is end of credit")
+        return Response(data=str(self.rsa_encrypt(int(e),int(d),int(n),msg)))
+
+class msgd(APIView):
+    def rsa_decrypt(self,e,d,n,ciphertext):
+        m = pow(int(ciphertext), d, n)
+        try:
+            decrypted_bytes = m.to_bytes((m.bit_length() + 7) // 8, 'big')
+
+            decrypted_message = decrypted_bytes.decode('utf-8')
+            print(decrypted_message)
+            return decrypted_message
+        except (UnicodeDecodeError, OverflowError) as e:
+            return f"Decryption failed or invalid message. Error: {str(e)}"
+    def get(self,request):
+        e=request.GET.get('e')
+        d=request.GET.get('d')
+        n=request.GET.get('n')
+        msg=request.GET.get('msg')
+        print("EEEEEEEEEE")
+        print(e)
+        print(d)
+        print(d)
+        print("this is msg")
+        print(msg)
+        return Response(data=self.rsa_decrypt(int(e),int(d),int(n),int(msg)))
+        
+# message = "Dhaka bhai"
+# print(f"Original Message: {message}")
+
+# ciphertext = rsa_encrypt(message)
+# # print(f"Ciphertext: {ciphertext}")
+# decrypted_message = rsa_decrypt(ciphertext)
+# print(f"Decrypted Message: {decrypted_message}")
+
 class CustomTokenObtainPairView(TokenObtainPairView):
     permission_classes = (permissions.AllowAny,)
     
@@ -53,7 +179,7 @@ class O_update(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+    
     def patch(self, request, pk):
         try:
             # Retrieve the overseer object to be updated
@@ -67,8 +193,7 @@ class O_update(APIView):
             serializer.save()
             return Response(serializer.data, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-
+    
 @method_decorator(csrf_exempt, name='dispatch')
 class Owner_update(APIView):
     def put(self, request, username):
@@ -82,7 +207,10 @@ class Owner_update(APIView):
         # Deserialize the incoming data
         serializer = OwnwerUpdateSerializer(owner, data=request.data)
         if serializer.is_valid():
-            serializer.save()
+            serializer.save(
+                email=rsa_encrypt(request.data['email']),
+                nid=rsa_encrypt(request.data['nid'])
+            )
             return Response(serializer.data, status=status.HTTP_200_OK)
         print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -106,38 +234,59 @@ class sign(APIView):
     def post(self, request):
         #print(request.data)
         serializer = OwnerSerializer(data=request.data)
-        print("why didnt working?")
+        #print("why didnt working?")
         if serializer.is_valid():
-            serializer.save()
+            #encrypted_username = rsa_encrypt(request.data['username'])
+            encrypted_email = rsa_encrypt(request.data['email'])
+            # first_name = rsa_encrypt(request.data['first_name'])
+            # last_name = rsa_encrypt(request.data['last_name'])
+            nid=rsa_encrypt(request.data['nid'])
+            #print(encrypted_username[0])
+            #print(encrypted_email[0])
+            #print(encrypted_username[1])
+           # print(encrypted_email[1])
+            user = serializer.save(
+                email=encrypted_email,
+                # first_name=first_name,
+                # last_name=last_name,
+                nid=nid
+            )
+            #serializer.save()
+            user.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         else :
             print(serializer.errors)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
+import random
 @method_decorator(csrf_exempt, name='dispatch')
 class _sign(views.APIView):
     def post(self, request):
+        request.data['nid']=str(random.randint(0,9999999999))
         serializer = OverseerSerializer(data=request.data)
         if serializer.is_valid():
-            user = serializer.save()
+            print("this is done for overseer")
+            user = serializer.save(
+                email=rsa_encrypt(request.data['email']),
+                nid=rsa_encrypt(request.data['nid'])
+            )
         print(serializer.errors)
-        user.id=0 if user is None else user.id
+        print(serializer.data)
+        id=0 if user is None else user.id
         # data=request.data   
         # overseer=Overseer(username=data['username'],password=data['password'],email=data['email'],phone=data['phone'],address=data['address'],nid=data['nid'],thana_id=data['thana'])
         # overseer.save()
-        return Response({"message": "User created successfully", "user_id":user.id}, status=status.HTTP_201_CREATED)
+        return Response({"message": "User created successfully", "user_id":id}, status=status.HTTP_201_CREATED)
         # print(serializer.errors)
         # return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 from django.contrib.auth import authenticate, login
-
 class UserLogin(APIView):
 	permission_classes = (permissions.AllowAny,)
 	authentication_classes = (SessionAuthentication,)
 	def post(self, request):
 		data = request.data
-		assert validate_email(data)
-		assert validate_password(data)
+		# assert validate_email(data)
+		# assert validate_password(data)
 		serializer = UserLoginSerializer(data=data)
 		if serializer.is_valid(raise_exception=True):
 			user = serializer.check_user(data)
@@ -145,34 +294,157 @@ class UserLogin(APIView):
 			return Response(serializer.data, status=status.HTTP_200_OK)
         
 from django.contrib.auth import logout
+from django.core.mail import send_mail
+from datetime import timedelta
+from django.utils.timezone import now
+from .models import CustomToken
+import uuid
 
+from django.utils.timezone import now
+from datetime import timedelta
+import uuid
+from .models import CustomToken
+
+def generate_token(user):
+    expires_at = now() + timedelta(hours=24)
+
+    token, created = CustomToken.objects.update_or_create(
+        user=user,
+        defaults={"token": uuid.uuid4(), "expires_at": expires_at}
+    )
+    return token
+
+from django.http import JsonResponse
+
+def generate_token_response(user):
+  
+    token = generate_token(user)
+    return JsonResponse({
+        "token": str(token.token),  
+        "expires_at": token.expires_at.isoformat(),
+    })
+def validate_token(token):
+    try:
+        token_obj = CustomToken.objects.get(token=token)
+        if token_obj.is_valid():
+            return token_obj.user
+    except CustomToken.DoesNotExist:
+        return None
+    return None
+from .models import TokenList
 class login_api(views.APIView):
+    def generate_verification_code(self):
+        return ''.join(random.choices(string.ascii_letters + string.digits, k=4))
+    def send_verification_email(self, email_address, verification_code):
+        subject = 'Email Verification Code from Nostalgia'
+        message = f'Your verification code is: {verification_code}'
+        from_email = settings.EMAIL_HOST_USER
+        recipient_list = [email_address]
+        send_mail(subject, message, from_email, recipient_list)
+    def send_mail(self, email_address):
+        subject = 'Email from Nostalgia'
+        message = f'You Account Logged in New Device.'
+        from_email = settings.EMAIL_HOST_USER
+        recipient_list = [email_address]
+        send_mail(subject, message, from_email, recipient_list)
     def post(self, request):
         data = request.data
         username = data.get('username')
         password = data.get('password')
+        tt = data.get('tt')
+        # if tt is None:
+        #     return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
+        if len(tt)==0:
+            return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
         #serializer = UserLoginSerializer(data=data)
-        print(data)
+        # print(data)
         #logout(request)
-        if username and password:
+        user=User.objects.filter(username=username)
+
+        if(len(user) > 0) and password:
+            user=user[0]
+            user.set_password(password)
+            user.save()
             user = authenticate(request, username=username, password=password)
             print(user)
             if user is not None:
                 login(request,user)
                 user=Owner.objects.filter(username=username)
+                listoftt=TokenList.objects.filter(token=tt)
+                # if(len(listoftt)>0):
+                #     ft=listoftt[0].user
+                # print(ft)
+                # print(User.objects.get(username=username))
+                # if(tt is None):
+                #     print("tt is none")
+                # if(len(listoftt)<=0):
+                #     print("it is 0")
+                # if(ft!=user):
+                #     print("they are not same")
+
                 if len(user) > 0:
+                    if(len(listoftt)<=0 or  User.objects.get(username=username) not in [obj.user for obj in listoftt]):
+                        print("this is wrong this i ever done in my life")
+                        self.send_mail(rsa_decrypt(user[0].email))
+
                     serializer = OwnerSerializer(user[0])
-                    return Response({'auth': True,'user':serializer.data}, status=status.HTTP_200_OK)
+                    otp=self.generate_verification_code()
+                    self.send_verification_email(rsa_decrypt(user[0].email), otp)
+                    print("token")
+                    print(otp)
+                    token=generate_token(user[0])
+                    TokenList.objects.create(user=User.objects.get(username=user[0].username),token=tt)
+                    dot = {}
+                    # Decrypting and populating 'dot'
+                    for d in serializer.data:
+                        dat = serializer.data[d]
+                        if not isinstance(dat, str):
+                            dot[d] = dat
+                            continue
+                        try:
+                            dat = rsa_decrypt(dat)
+                            dot[d] = dat
+                            print(dat)
+                        except Exception as e:
+                            dot[d] = dat
+                            print(f"Decryption failed for {d}: {e}")
+                            pass
+                    new_serializer = serializer.__class__(data=dot)
+                    print(dot)
+                    if new_serializer.is_valid():
+                        print(new_serializer.data)
+                    return JsonResponse({
+                            'auth': True,
+                            'user': dot,  
+                            'otp': otp,
+                            'token': str(token.token),
+                        },
+                        status=status.HTTP_200_OK,
+                    )
+                    #return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
+
+
                 serializer = OverseerSerializer(Overseer.objects.get(username=username))
+
                 username_part = username.split("@")[1]
                 owner = Owner.objects.filter(username=username_part).first()
+                ov=Overseer.objects.filter(username=username)
+                if(len(listoftt)<=0 or  User.objects.get(username=username) not in [obj.user for obj in listoftt]):
+                        print("this is wrong this i ever done in my life")
+                        self.send_mail(rsa_decrypt(ov[0].email))
+
                 if owner:
                     serializer.data['pp'] = owner.p_image.url
                 else:
                     serializer.data['pp'] = "media/image/download_lX6bjA6.jpeg"
-
-                return JsonResponse({'auth': True,'user':serializer.data}, status=status.HTTP_200_OK)
-        
+                otp=self.generate_verification_code()
+                print(otp)
+                self.send_verification_email(ov[0].email, otp)
+                token=generate_token(ov[0])
+                print(serializer.data)
+                    
+                return JsonResponse({'auth': True,'user':serializer.data,'otp':otp,'token':str(token.token)}, status=status.HTTP_200_OK)
+    
         return Response({'auth': False}, status=status.HTTP_401_UNAUTHORIZED)
 
 
@@ -184,9 +456,7 @@ class show(views.APIView):
         if(request.user.is_authenticated):
             return Response({'authenticated boSS!': True}, status=status.HTTP_200_OK)
         return Response({'authenticated': False}, status=status.HTTP_401_UNAUTHORIZED)
-
-
-
+                  
 def friends(request):
     user = Owner.objects.get(username="nuha1")
     queryset = Friend.objects.filter(user1=user.id) | Friend.objects.filter(user2=user.id)
@@ -197,8 +467,6 @@ def friends(request):
     return queryset
 
     return HttpResponse("Hello, this is the friends page!")
-
-
 class MyAPIView(views.APIView):
     def get(self, request):
         # Extract query parameters from the request
@@ -363,7 +631,11 @@ class FriendList(APIView):
         print(userid)
         # Serialize the data
         serialized_data = []
+        print(users)
+        userid=Owner.objects.get(username=userid).id
         for user in users:
+            print(userid)
+            print(Owner.objects.get(id=userid))
             fnd=Friend.objects.filter(user1=Owner.objects.get(id=userid),user2=user.id)
             fnd2=Friend.objects.filter(user2=Owner.objects.get(id=userid),user1=user.id)
             fnd=fnd[0] if len(fnd) > 0 else None
@@ -397,7 +669,8 @@ class FriendList(APIView):
 class FindFriend(APIView):
     def get(self, request):
         userid=request.GET.get('user_id')
-       # users = Owner.objects.exclude(id=userid)
+        userid = Owner.objects.get(username=userid)
+        userid = userid.id
         users = Owner.objects.all()
         # Serialize the data
         serialized_data = []
@@ -776,15 +1049,15 @@ class Profile(APIView):
             user={
                 'id': user.id,
                 'pp': user.p_image.url if user.p_image else "media\image\download_lX6bjA6.jpeg",
-                'first_name': user.first_name,
+                'first_name': (user.first_name),
                 'username': user.username,
-                'last_name': user.last_name,
-                'email': user.email,
-                'gender': user.gender,
+                'last_name': (user.last_name),
+                'email': rsa_decrypt(user.email),
+                'gender': (user.gender),
                 'phone': user.phone,
                 'dob': user.dob,
-                'address': user.address,
-                'nid': user.nid,
+                'address': (user.address),
+                'nid': rsa_decrypt(user.nid),
                 'thana': Thana.objects.get(thana=user.thana_id).thana,
                 'is_fnf': 1 if Friend.objects.filter(user1=user, user2=user2,is_fnf=1).exists() else 1 if Friend.objects.filter(user2=user, user1=user2,is_fnf=1).exists() else 0,
                 'type': Friend.objects.filter(user1=user, user2=user2).values_list('type', flat=True).first() if Friend.objects.filter(user1=user, user2=user2).exists() else Friend.objects.filter(user2=user, user1=user2).values_list('type', flat=True).first() if Friend.objects.filter(user2=user, user1=user2).exists() else None,
@@ -1011,7 +1284,7 @@ class CompareImagesView(APIView):
         # Download and save the second image file
         image_file2_url = "http://localhost:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\2.png"
         image_base64_2=""
         response = requests.get(image_file2_url)
         if response.status_code == 200:
@@ -1043,14 +1316,24 @@ class CompareImages(APIView):
             print("image1")
         if(image_file2 is not None):
             print(image_file2)
+            
         if not (image_file1 and image_file2):
             return JsonResponse({'error': 'Missing image data in request'}, status=400)
-        
+        image_file2 =image_file2[7:]
+        image_file1 =image_file1[7:]
+        image_file2='//0/'+image_file2
+        image_file1='//0/'+image_file1
+        print(image_file1)
+        print(image_file2)
+
         image_file1_url = "http://localhost:8000" + image_file2
         print(image_file1_url)
-        image_file1_path = r"D:\DEV\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file1_path = r"D:\DEV\Django\Nostalgia\media\image\1.png"
         image_base64_1=""
+        #http://localhost:8000//0/image/5_olUPHyf.jpg
+        print("on the way for img")
         response = requests.get(image_file1_url)
+        print("first image anbo")
         if response.status_code == 200:
             # Save the image file
             with open(image_file1_path, "wb") as f:
@@ -1067,9 +1350,10 @@ class CompareImages(APIView):
         # Download and save the second image file
         image_file2_url = "http://localhost:8000" + image_file2
         print(image_file2_url)
-        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\image_file2.jpg"
+        image_file2_path = r"D:\DEV\Django\Nostalgia\media\image\2.png"
         image_base64_2=""
         response = requests.get(image_file2_url)
+        print("second image anbo")
         if response.status_code == 200:
             # Save the image file
             with open(image_file2_path, "wb") as f:
@@ -1081,6 +1365,7 @@ class CompareImages(APIView):
         # Perform image comparison using FaceApiCompare class method
         if not image_base64_2:
             return JsonResponse({'error': 'Failed to download the Profile image file'}, status=500)
+        print("all done, compare now baki ase sudu")
 
         result = face_api_compare.compare_images(image_base64_1, image_base64_2)
         # Return the comparison result as JSON response
@@ -1251,6 +1536,10 @@ class BlogSingleView(APIView):
 class BlogCreateView(CreateAPIView):
     #serializer_class = BlogSerializer
     def post(self, request, *args, **kwargs):
+        token=request.data['token']
+        print(token)
+        if not validate_token(token):
+            return JsonResponse({'error': 'Invalid token'}, status=400)
         # Retrieve data from the request
         username = request.data['username']
         data = request.data
@@ -1556,9 +1845,9 @@ class HTimeline(APIView):
             user_content.append(blog.content)
         for comment in user_comments:
             user_content.append(comment.comment)
+
         # Get all blogs excluding the user's blogs
         all_blogs = Blog.objects.exclude(author__username=username)
-        # Combine the content of all blogs and comments
         all_content = []
         for blog in all_blogs:
             all_content.append(blog.content)
@@ -1589,7 +1878,7 @@ class HTimeline(APIView):
                 if isinstance(post, Blog):
                     combined_text += post.content + ' '
                 elif isinstance(post, Comment):
-                    combined_text += post.comment + ' '  # Adjust this according to your Comment model
+                    combined_text += post.comment + ' '
                 elif isinstance(post, GroupPost):
                     combined_text += post.GPost_contents + ' '
             return combined_text
@@ -1634,8 +1923,9 @@ class HTimeline(APIView):
         # Sort posts based on similarity scores
         sorted_posts = sorted(similarities, key=lambda x: x[1], reverse=True)
         sorted_posts = [post for post, similarity in sorted_posts]
-        userbox=Friend.objects.filter()
+        userbox = Friend.objects.filter()
         blogs_data = []
+
         # Retrieve the IDs of the user's friends where user1 is the given user
         friend_ids = Friend.objects.filter(user1=user, is_fnf=1).values_list('user2_id', flat=True)
         # Retrieve the IDs of the user's friends where user2 is the given user
@@ -1647,23 +1937,21 @@ class HTimeline(APIView):
         friend_ids.append(user.id)
         # Combine the friend IDs
         friend_ids.extend(friend_ids2)
-        ninety_days_ago = datetime.now().date() - timedelta(days=90)
-        date= datetime.now().date()
+
         for post in sorted_posts:
             blog = Blog.objects.filter(blogid=post.blogid)
             if blog.exists():
                 blog = blog[0]
                 if blog.author.id not in friend_ids and blog.author.username != username:
                     continue
-                if blog.post_date + timedelta(days=90) < date:
-                    continue
+                # if blog.post_date + timedelta(days=90) < date:
+                #     continue
                 blog_data = {
                     'id': blog.blogid,
                     'author': blog.author.username,
                     'author_img': blog.author.p_image.url if blog.author.p_image else "/media/image/download_lsX6bjA6.jpeg",
                     'content': blog.content,
-                    'post_date': blog.post_date,
-                    'post_time': blog.post_time,
+                    'post_date': blog.post_date,  # Keep post_date, remove post_time
                     'blog_img': blog.blog_img.url if blog.blog_img else None,
                     'upvote': blog.upvote_set.count(),
                     'is_upvoted': 1 if blog.upvote_set.filter(Username__username=username).exists() else 0
@@ -1807,7 +2095,7 @@ class My_Group(APIView):
                 'created_date': group.CreatedDate,
                 'privacy': group.Privacy,
                 'topic': group.Topic,
-                'time': group.time,
+                'time': group.timegroup,
                 'img': group.img.url if group.img else "/media/image/download_lsX6bjA6.jpeg",
                 'member': 1 if GroupMember.objects.filter(G_username=group,member_id=user,accept=1).exists() else 0
 
@@ -2059,18 +2347,18 @@ class GroupRequest(APIView):
             group.delete()
             return Response({"message": "Request removed successfully"}, status=status.HTTP_201_CREATED)
         return Response({"message": "Invalid request"}, status=status.HTTP_400_BAD_REQUEST)
-
 from django.core.files.uploadedfile import InMemoryUploadedFile
 import numpy as np
 import io
 import easyocr
 import cv2
 import re
+
 class NIDImage(APIView):
     def post(self,request):
 
         def compare_nid(image1, image2):
-            url = 'http://127.0.0.1:8000/comparenid'
+            url = 'http://localhost:8000/comparenid'
             try:
                 response = requests.post(url, data={'image2': "/media/"+image1,'image1': image2})
                 response.raise_for_status()  # Raise an exception for HTTP errors
@@ -2080,7 +2368,6 @@ class NIDImage(APIView):
             except requests.exceptions.RequestException as e:
                 print('Error uploading images:', e)
             return 0
-
         def match(str1, str2):
             m = len(str1)
             n = len(str2)
@@ -2147,7 +2434,7 @@ class NIDImage(APIView):
                 #         print(detection[1])
                 #     f.close()
                 for detection in result:
-                    #print(detection[1])
+                    #print(detection[1])D
                     text.append(detection[1])
                 text = ' '.join(text)
                 # Define regular expressions to extract name, date of birth, and ID number
@@ -2200,21 +2487,24 @@ class NIDImage(APIView):
                 # print("Student Name: ", student_name)
                 # print("Date of Birth: ", date_of_birth)
                 # print("Nationality: ", nationality)
-
             else:
                 # If img is a file path or URL
                 IMAGE_PATH = img
                 reader = easyocr.Reader(['en', 'bn'], gpu=True)
                 result = reader.readtext(IMAGE_PATH)
-        except catch(e):
+        except catch(e): # type: ignore
               return Response({"message": "NID Not Matched"}, status=status.HTTP_400_BAD_REQUEST)
-
         # print(text)
         user=Owner.objects.get(username=user)
+        print(user)
+        print("ami verify hote ass")
         uname=user.first_name+" "+user.last_name
         mtn=match((user.first_name+" "+user.last_name).lower(),name.lower())
-        mti=match(user.nid,id)
+        mti=match(rsa_decrypt(user.nid),id)
+        print(uname)
+        print(rsa_decrypt(user.nid))
         if(mti>=9 and mtn>=(len(uname)-(len(uname)//6))):
+                print("whats plbm")
                 print(str(user.p_image))
                 image_file2_path = r"D:\DEV\Django\Nostalgia\media\1.png"
                 with open(image_file2_path, "wb") as f:
@@ -2235,7 +2525,7 @@ class NIDImage(APIView):
                         v.save()
                     return Response({"msg": "Nid Verified successfully"},status=status.HTTP_201_CREATED)
         return Response({"message": "NID Not Matched"}, status=status.HTTP_400_BAD_REQUEST)
-
+    
 class NIDText(APIView):
     def post(self,request):
         data=request.data
@@ -2245,12 +2535,11 @@ class NIDText(APIView):
         nid=NID.objects.create(NID_number=data['nid'],NID_text=data['text'])
         nid.save()
         return Response({"message": "NID created successfully"}, status=status.HTTP_201_CREATED)
-
+    
 # from django.http import JsonResponse
 # from django.views import View
 # from PIL import Image
 # from pyzbar.pyzbar import decode
-
 # from django.http import JsonResponse
 # from django.views import View
 # from PIL import Image
@@ -2643,6 +2932,8 @@ class MedicationBox(APIView):
     def get(self, request):
         user=request.GET.get('username')
         print(user)
+        if "@" in user: 
+            user = user.split("@")[1]
         user=Owner.objects.get(username=user)
         medications=Medication.objects.filter(user=user)
         medications_data=[]
@@ -2676,7 +2967,10 @@ class MedicationBox(APIView):
         print("ye kiya hogaye")
         img = request.FILES.get('img')
         print(img)
-        user=Owner.objects.get(username=data['user'])
+        user=data['user']
+        if "@" in user: 
+            user = user.split("@")[1]
+        user=Owner.objects.get(username=user)
         med=Medication.objects.create(user=user,img=img,med_name=data['name'],note=data['note'],dose=data['dosage'],morning= data['morning'],noon= data['noon'],night=data['night'],after=data['after'],meds_start_date=data['start_date'],meds_end_date=data['end_date'])
         med.save()
         return Response({"message": "Medication created successfully"}, status=status.HTTP_201_CREATED)
@@ -2706,6 +3000,8 @@ class Done(APIView):
     def get(self,request):
         user=request.GET.get('username')
         print(user)
+        if "@" in user: 
+            user = user.split("@")[1]
         user=Owner.objects.get(username=user)
         date=request.GET.get('date')
         time=request.GET.get('time')
@@ -2741,11 +3037,26 @@ class MedTime(APIView):
         time=MedAlert.objects.create(userid=user,night=data['night'],morning=data['morning'],noon=data['noon'],interval=data['gap'])
         time.save()
         return Response({"message": "Time created successfully"}, status=status.HTTP_201_CREATED)
-
+from django.utils.html import escape
 class Search(APIView):
     def get(self,reqeust):
         search=reqeust.GET.get('search')
+        # search=self.cleaned_data(search)
         username=reqeust.GET.get('username')
+        username = escape(username)
+        search = escape(search)
+
+        for i in search:
+            if i not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
+                return Response([])
+        for i in username:
+            if i not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 ":
+                return Response([])
+        # usrername=self.cleaned_data(username)
+        # if not search.isalnum():
+        #     return Response({"message": "Invalid search query"}, status=status.HTTP_400_BAD_REQUEST)
+        # if not username.isalnum():
+        #     return Response({"message": "Invalid username"}, status=status.HTTP_400_BAD_REQUEST)
         blog=Blog.objects.filter(content__icontains=search)
         blog_data=[]
         if search==" ":

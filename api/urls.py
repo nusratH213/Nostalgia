@@ -61,7 +61,7 @@ urlpatterns=[
     path('groupmembers', views.GroupMembers.as_view(), name='groupmembers'),
     path('requestmembers',views.RequestMembers.as_view(), name='requestmembers'),
     path('grouprequest',views.GroupRequest.as_view(), name='grouprequest'),
-    path('friendsugg',views.FriendSugg.as_view(), name='friendsugg'),
+    path('friendsugg',views.FindFriend.as_view(), name='friendsugg'),
     path('caregiver',views.CareGiver.as_view(), name='caregiver'),
     path('medication',views.MedicationBox.as_view(), name='medication'),
     path('done',views.Done.as_view(), name='done'),
@@ -91,6 +91,9 @@ urlpatterns=[
     path('updategroup',views.UpdateGroup.as_view(), name='updategroup'),
     path('findthana',views.FindThana.as_view(), name='findthana'),
     path('finddistrict',views.FindDistrict.as_view(), name='finddistrict'),
+    path('pbvt',views.PBVT.as_view(), name='pbvt'),
+    path('msge',views.msge.as_view(),name='msge'),
+    path('msgd',views.msgd.as_view(),name='msgd')
     ]
 
 
